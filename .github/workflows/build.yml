@@ -1,0 +1,92 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Test and package Apple Silicon app
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install pkg-config
+        run: |
+          if ! command -v pkg-config >/dev/null 2>&1; then
+            brew install pkgconf
+          fi
+
+      - name: Select build version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="dev-${GITHUB_SHA::7}"
+          fi
+          echo "value=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build and verify app
+        run: ./scripts/build-app.sh "${{ steps.version.outputs.value }}"
+
+      - name: Run tests against bundled libusb
+        shell: bash
+        run: |
+          build_root="${TMPDIR:-/tmp}/dji-4g-connect-build-arm64"
+          PKG_CONFIG_PATH="${build_root}/libusb-source" \
+          DYLD_LIBRARY_PATH="${build_root}/libusb-prefix/lib" \
+          go test -mod=readonly ./...
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DJI-4G-Connect-macOS-arm64-${{ steps.version.outputs.value }}
+          path: |
+            dist/DJI-4G-Connect-macOS-arm64-${{ steps.version.outputs.value }}.zip
+            dist/DJI-4G-Connect-macOS-arm64-${{ steps.version.outputs.value }}.zip.sha256
+          if-no-files-found: error
+
+  release:
+    name: Publish tagged release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packaged app
+        uses: actions/download-artifact@v4
+        with:
+          pattern: DJI-4G-Connect-macOS-arm64-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            dist/DJI-4G-Connect-macOS-arm64-*.zip \
+            dist/DJI-4G-Connect-macOS-arm64-*.zip.sha256 \
+            --repo "${GITHUB_REPOSITORY}" \
+            --generate-notes \
+            --title "DJI 4G Connect ${GITHUB_REF_NAME}"

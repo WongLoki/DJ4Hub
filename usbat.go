@@ -4,8 +4,131 @@ package main
 
 /*
 #cgo pkg-config: libusb-1.0
-#include <stdlib.h>
 #include <libusb.h>
+#include <stdlib.h>
+
+typedef struct {
+    libusb_context *context;
+    libusb_device_handle *handle;
+    int interface_number;
+    unsigned char endpoint_in;
+    unsigned char endpoint_out;
+} modem_pipe;
+
+static int dji_topology(int *has_control, int *has_data) {
+    libusb_context *context = NULL;
+    libusb_device **devices = NULL;
+    int found = 0;
+    *has_control = 0;
+    *has_data = 0;
+    if (libusb_init(&context) != 0) return 0;
+    ssize_t count = libusb_get_device_list(context, &devices);
+    for (ssize_t i = 0; i < count; i++) {
+        struct libusb_device_descriptor descriptor;
+        if (libusb_get_device_descriptor(devices[i], &descriptor) != 0) continue;
+        if (descriptor.idVendor != 0x2ca3 || descriptor.idProduct != 0x4006) continue;
+        found = 1;
+        struct libusb_config_descriptor *configuration = NULL;
+        if (libusb_get_active_config_descriptor(devices[i], &configuration) == 0) {
+            for (int j = 0; j < configuration->bNumInterfaces; j++) {
+                const struct libusb_interface *interface = &configuration->interface[j];
+                for (int k = 0; k < interface->num_altsetting; k++) {
+                    unsigned char class_code = interface->altsetting[k].bInterfaceClass;
+                    if (class_code == LIBUSB_CLASS_COMM) *has_control = 1;
+                    if (class_code == LIBUSB_CLASS_DATA) *has_data = 1;
+                }
+            }
+            libusb_free_config_descriptor(configuration);
+        }
+        break;
+    }
+    if (devices != NULL) libusb_free_device_list(devices, 1);
+    libusb_exit(context);
+    return found;
+}
+
+// Each call opens one bulk endpoint pair by ordinal. Go probes the pair with AT
+// and keeps the first responsive channel.
+static modem_pipe *dji_open_pipe(int ordinal, int *status) {
+    modem_pipe *pipe = calloc(1, sizeof(modem_pipe));
+    libusb_device **devices = NULL;
+    struct libusb_config_descriptor *configuration = NULL;
+    int seen = 0;
+    *status = LIBUSB_ERROR_NOT_FOUND;
+    if (pipe == NULL) {
+        *status = LIBUSB_ERROR_NO_MEM;
+        return NULL;
+    }
+    *status = libusb_init(&pipe->context);
+    if (*status != 0) goto fail;
+    ssize_t count = libusb_get_device_list(pipe->context, &devices);
+    for (ssize_t i = 0; i < count; i++) {
+        struct libusb_device_descriptor descriptor;
+        if (libusb_get_device_descriptor(devices[i], &descriptor) != 0) continue;
+        if (descriptor.idVendor != 0x2ca3 || descriptor.idProduct != 0x4006) continue;
+        *status = libusb_open(devices[i], &pipe->handle);
+        if (*status != 0) goto fail;
+        *status = libusb_get_active_config_descriptor(devices[i], &configuration);
+        if (*status != 0) goto fail;
+        for (int j = 0; j < configuration->bNumInterfaces; j++) {
+            const struct libusb_interface *interface = &configuration->interface[j];
+            for (int k = 0; k < interface->num_altsetting; k++) {
+                const struct libusb_interface_descriptor *alternate = &interface->altsetting[k];
+                unsigned char endpoint_in = 0;
+                unsigned char endpoint_out = 0;
+                for (int e = 0; e < alternate->bNumEndpoints; e++) {
+                    const struct libusb_endpoint_descriptor *endpoint = &alternate->endpoint[e];
+                    if ((endpoint->bmAttributes & LIBUSB_TRANSFER_TYPE_MASK) != LIBUSB_TRANSFER_TYPE_BULK) continue;
+                    if ((endpoint->bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) == LIBUSB_ENDPOINT_IN)
+                        endpoint_in = endpoint->bEndpointAddress;
+                    else
+                        endpoint_out = endpoint->bEndpointAddress;
+                }
+                if (endpoint_in == 0 || endpoint_out == 0) continue;
+                if (seen++ != ordinal) continue;
+                pipe->interface_number = alternate->bInterfaceNumber;
+                pipe->endpoint_in = endpoint_in;
+                pipe->endpoint_out = endpoint_out;
+                *status = libusb_claim_interface(pipe->handle, pipe->interface_number);
+                if (*status != 0) goto fail;
+                libusb_free_config_descriptor(configuration);
+                libusb_free_device_list(devices, 1);
+                return pipe;
+            }
+        }
+        *status = LIBUSB_ERROR_NOT_FOUND;
+        break;
+    }
+fail:
+    if (configuration != NULL) libusb_free_config_descriptor(configuration);
+    if (devices != NULL) libusb_free_device_list(devices, 1);
+    if (pipe->handle != NULL) libusb_close(pipe->handle);
+    if (pipe->context != NULL) libusb_exit(pipe->context);
+    free(pipe);
+    return NULL;
+}
+
+static void dji_close_pipe(modem_pipe *pipe) {
+    if (pipe == NULL) return;
+    if (pipe->handle != NULL) {
+        libusb_release_interface(pipe->handle, pipe->interface_number);
+        libusb_close(pipe->handle);
+    }
+    if (pipe->context != NULL) libusb_exit(pipe->context);
+    free(pipe);
+}
+
+static int dji_pipe_write(modem_pipe *pipe, unsigned char *bytes, int length,
+                          unsigned int timeout_ms, int *transferred) {
+    return libusb_bulk_transfer(pipe->handle, pipe->endpoint_out, bytes, length,
+                                transferred, timeout_ms);
+}
+
+static int dji_pipe_read(modem_pipe *pipe, unsigned char *bytes, int capacity,
+                         unsigned int timeout_ms, int *transferred) {
+    return libusb_bulk_transfer(pipe->handle, pipe->endpoint_in, bytes, capacity,
+                                transferred, timeout_ms);
+}
 */
 import "C"
 
@@ -18,254 +141,179 @@ import (
 	"unsafe"
 )
 
-const (
-	djiUSBVendorID  = 0x2ca3
-	djiUSBProductID = 0x4006
-)
-
-type usbAT struct {
-	ctx         *C.libusb_context
-	handle      *C.libusb_device_handle
-	iface       int
-	endpointIn  byte
-	endpointOut byte
-	mu          sync.Mutex
+type modemChannel struct {
+	pipe *C.modem_pipe
+	mu   sync.Mutex
 }
 
-type usbATCandidate struct {
-	iface       int
-	endpointIn  byte
-	endpointOut byte
+func moduleUSBState() (present, ecm bool) {
+	var control, data C.int
+	present = C.dji_topology(&control, &data) != 0
+	return present, control != 0 && data != 0
 }
 
-func openDJIUSBAT() (*usbAT, error) {
-	var context *C.libusb_context
-	if result := C.libusb_init(&context); result != 0 {
-		return nil, fmt.Errorf("libusb init: %s", usbErrorName(result))
-	}
-	handle := C.libusb_open_device_with_vid_pid(context, djiUSBVendorID, djiUSBProductID)
-	if handle == nil {
-		C.libusb_exit(context)
-		return nil, errors.New("DJI USB AT device 2ca3:4006 not found")
-	}
-	candidates, err := usbATCandidates(handle)
-	if err != nil {
-		C.libusb_close(handle)
-		C.libusb_exit(context)
-		return nil, err
-	}
-	var lastErr error
-	for _, candidate := range candidates {
-		if result := C.libusb_claim_interface(handle, C.int(candidate.iface)); result != 0 {
-			lastErr = fmt.Errorf("claim USB AT interface %d: %s", candidate.iface, usbErrorName(result))
-			continue
-		}
-		device := &usbAT{
-			ctx:         context,
-			handle:      handle,
-			iface:       candidate.iface,
-			endpointIn:  candidate.endpointIn,
-			endpointOut: candidate.endpointOut,
-		}
-		if response, probeErr := device.Command("AT", 900*time.Millisecond); probeErr == nil && atSucceeded(response) {
-			return device, nil
-		} else {
-			if probeErr == nil {
-				probeErr = fmt.Errorf("unexpected AT probe response %q", response)
+func openModemChannel() (*modemChannel, error) {
+	var lastError error
+	for ordinal := 0; ordinal < 16; ordinal++ {
+		var status C.int
+		pipe := C.dji_open_pipe(C.int(ordinal), &status)
+		if pipe == nil {
+			if ordinal == 0 {
+				return nil, fmt.Errorf("无法打开 USB 2ca3:4006: %s", libusbStatus(status))
 			}
-			lastErr = fmt.Errorf("probe USB AT interface %d: %w", candidate.iface, probeErr)
+			break
 		}
-		C.libusb_release_interface(handle, C.int(candidate.iface))
+		channel := &modemChannel{pipe: pipe}
+		answer, err := channel.Send("AT", 1200*time.Millisecond)
+		if err == nil && responseOK(answer) {
+			return channel, nil
+		}
+		if err == nil {
+			err = fmt.Errorf("AT 探测返回 %q", answer)
+		}
+		lastError = err
+		channel.Close()
 	}
-	C.libusb_close(handle)
-	C.libusb_exit(context)
-	if lastErr != nil {
-		return nil, lastErr
+	if lastError != nil {
+		return nil, fmt.Errorf("没有找到可用的 USB AT 通道: %w", lastError)
 	}
-	return nil, errors.New("no USB bulk interface candidates found for DJI AT bridge")
+	return nil, errors.New("模块没有暴露可用的 USB bulk AT 通道")
 }
 
-func usbATCandidates(handle *C.libusb_device_handle) ([]usbATCandidate, error) {
-	device := C.libusb_get_device(handle)
-	if device == nil {
-		return nil, errors.New("libusb device handle has no device")
-	}
-	var config *C.struct_libusb_config_descriptor
-	if result := C.libusb_get_active_config_descriptor(device, &config); result != 0 {
-		return nil, fmt.Errorf("get active USB config descriptor: %s", usbErrorName(result))
-	}
-	defer C.libusb_free_config_descriptor(config)
-
-	var candidates []usbATCandidate
-	interfaces := unsafe.Slice(config._interface, int(config.bNumInterfaces))
-	for _, item := range interfaces {
-		altsettings := unsafe.Slice(item.altsetting, int(item.num_altsetting))
-		for _, alt := range altsettings {
-			var endpointIn, endpointOut byte
-			endpoints := unsafe.Slice(alt.endpoint, int(alt.bNumEndpoints))
-			for _, endpoint := range endpoints {
-				attributes := byte(endpoint.bmAttributes) & byte(C.LIBUSB_TRANSFER_TYPE_MASK)
-				if attributes != byte(C.LIBUSB_TRANSFER_TYPE_BULK) {
-					continue
-				}
-				address := byte(endpoint.bEndpointAddress)
-				if address&byte(C.LIBUSB_ENDPOINT_IN) != 0 {
-					endpointIn = address
-				} else {
-					endpointOut = address
-				}
-			}
-			if endpointIn != 0 && endpointOut != 0 {
-				candidates = append(candidates, usbATCandidate{
-					iface:       int(alt.bInterfaceNumber),
-					endpointIn:  endpointIn,
-					endpointOut: endpointOut,
-				})
-			}
-		}
-	}
-	return candidates, nil
-}
-
-func (device *usbAT) Close() {
-	if device == nil {
+func (channel *modemChannel) Close() {
+	if channel == nil {
 		return
 	}
-	device.mu.Lock()
-	defer device.mu.Unlock()
-	if device.handle == nil {
-		return
+	channel.mu.Lock()
+	defer channel.mu.Unlock()
+	if channel.pipe != nil {
+		C.dji_close_pipe(channel.pipe)
+		channel.pipe = nil
 	}
-	C.libusb_release_interface(device.handle, C.int(device.iface))
-	C.libusb_close(device.handle)
-	C.libusb_exit(device.ctx)
-	device.handle = nil
-	device.ctx = nil
 }
 
-func (device *usbAT) Command(command string, timeout time.Duration) (string, error) {
+func (channel *modemChannel) Send(command string, timeout time.Duration) (string, error) {
 	command = strings.TrimSpace(command)
-	if command == "" || !strings.HasPrefix(strings.ToUpper(command), "AT") {
-		return "", errors.New("AT command is invalid")
+	if !strings.HasPrefix(strings.ToUpper(command), "AT") {
+		return "", errors.New("无效的 AT 指令")
 	}
-	device.mu.Lock()
-	defer device.mu.Unlock()
-	if device.handle == nil {
-		return "", errors.New("USB AT device is not open")
+	if timeout <= 0 {
+		timeout = 3 * time.Second
 	}
-	device.drainLocked()
-	if err := device.bulkWriteLocked(device.endpointOut, []byte(command+"\r"), timeout); err != nil {
+	channel.mu.Lock()
+	defer channel.mu.Unlock()
+	if channel.pipe == nil {
+		return "", errors.New("USB AT 通道已经关闭")
+	}
+	channel.discardPendingInput()
+	request := []byte(command + "\r")
+	if err := channel.write(request, timeout); err != nil {
 		return "", err
 	}
 	deadline := time.Now().Add(timeout)
-	var chunks []string
+	var response strings.Builder
 	for time.Now().Before(deadline) {
-		remaining := time.Until(deadline)
-		if remaining > 900*time.Millisecond {
-			remaining = 900 * time.Millisecond
+		window := minDuration(700*time.Millisecond, time.Until(deadline))
+		chunk, err := channel.read(window)
+		if errors.Is(err, errTransferTimeout) {
+			continue
 		}
-		data, err := device.bulkReadLocked(device.endpointIn, remaining)
 		if err != nil {
-			if errors.Is(err, errUSBTimeout) {
-				continue
-			}
-			return strings.Join(chunks, ""), err
+			return cleanATResponse(response.String()), err
 		}
-		chunks = append(chunks, string(data))
-		joined := strings.Join(chunks, "")
-		if atResponseComplete(joined) {
-			return normalizeATResponse(joined), nil
+		response.Write(chunk)
+		if responseFinished(response.String()) {
+			return cleanATResponse(response.String()), nil
 		}
 	}
-	if len(chunks) == 0 {
-		return "", errors.New("USB AT command timed out without response")
+	if response.Len() == 0 {
+		return "", errors.New("AT 指令等待响应超时")
 	}
-	return normalizeATResponse(strings.Join(chunks, "")), nil
+	return cleanATResponse(response.String()), nil
 }
 
-var errUSBTimeout = errors.New("usb timeout")
+var errTransferTimeout = errors.New("USB transfer timeout")
 
-func (device *usbAT) drainLocked() {
+func (channel *modemChannel) discardPendingInput() {
 	for {
-		if _, err := device.bulkReadLocked(device.endpointIn, 80*time.Millisecond); err != nil {
+		if _, err := channel.read(50 * time.Millisecond); err != nil {
 			return
 		}
 	}
 }
 
-func (device *usbAT) bulkWriteLocked(endpoint byte, payload []byte, timeout time.Duration) error {
+func (channel *modemChannel) write(payload []byte, timeout time.Duration) error {
 	var transferred C.int
-	result := C.libusb_bulk_transfer(
-		device.handle,
-		C.uchar(endpoint),
+	status := C.dji_pipe_write(
+		channel.pipe,
 		(*C.uchar)(unsafe.Pointer(&payload[0])),
 		C.int(len(payload)),
-		&transferred,
 		C.uint(timeout.Milliseconds()),
+		&transferred,
 	)
-	if result != 0 {
-		return fmt.Errorf("USB bulk write: %s", usbErrorName(result))
+	if status != 0 {
+		return fmt.Errorf("USB 写入失败: %s", libusbStatus(status))
 	}
 	if int(transferred) != len(payload) {
-		return fmt.Errorf("USB bulk write short transfer: %d/%d", transferred, len(payload))
+		return fmt.Errorf("USB 写入不完整: %d/%d", transferred, len(payload))
 	}
 	return nil
 }
 
-func (device *usbAT) bulkReadLocked(endpoint byte, timeout time.Duration) ([]byte, error) {
-	buffer := make([]byte, 512)
+func (channel *modemChannel) read(timeout time.Duration) ([]byte, error) {
+	buffer := make([]byte, 1024)
 	var transferred C.int
-	result := C.libusb_bulk_transfer(
-		device.handle,
-		C.uchar(endpoint),
+	status := C.dji_pipe_read(
+		channel.pipe,
 		(*C.uchar)(unsafe.Pointer(&buffer[0])),
 		C.int(len(buffer)),
+		C.uint(max(timeout.Milliseconds(), 1)),
 		&transferred,
-		C.uint(timeout.Milliseconds()),
 	)
-	if result == C.LIBUSB_ERROR_TIMEOUT {
-		return nil, errUSBTimeout
+	if status == C.LIBUSB_ERROR_TIMEOUT {
+		return nil, errTransferTimeout
 	}
-	if result != 0 {
-		return nil, fmt.Errorf("USB bulk read: %s", usbErrorName(result))
+	if status != 0 {
+		return nil, fmt.Errorf("USB 读取失败: %s", libusbStatus(status))
 	}
 	return buffer[:int(transferred)], nil
 }
 
-func usbErrorName(result C.int) string {
-	return C.GoString(C.libusb_error_name(result))
+func libusbStatus(status C.int) string {
+	return C.GoString(C.libusb_error_name(status))
 }
 
-func atResponseComplete(response string) bool {
-	normalized := strings.ReplaceAll(response, "\r\n", "\n")
-	return strings.Contains(normalized, "\nOK\n") ||
-		strings.HasSuffix(normalized, "\nOK") ||
-		atResponseIsError(normalized)
+func responseFinished(value string) bool {
+	upper := "\n" + strings.ToUpper(strings.ReplaceAll(value, "\r", "")) + "\n"
+	return strings.Contains(upper, "\nOK\n") ||
+		strings.Contains(upper, "\nERROR\n") ||
+		strings.Contains(upper, "+CME ERROR:") ||
+		strings.Contains(upper, "+CMS ERROR:")
 }
 
-func atResponseIsError(response string) bool {
-	normalized := strings.ToUpper(strings.ReplaceAll(response, "\r\n", "\n"))
-	return strings.Contains(normalized, "\nERROR\n") ||
-		strings.HasSuffix(normalized, "\nERROR") ||
-		strings.Contains(normalized, "+CME ERROR:") ||
-		strings.Contains(normalized, "+CMS ERROR:")
-}
-
-func atSucceeded(response string) bool {
-	normalized := strings.ReplaceAll(strings.TrimSpace(response), "\r\n", "\n")
-	return normalized == "OK" || strings.HasSuffix(normalized, "\nOK")
-}
-
-func normalizeATResponse(response string) string {
-	response = strings.ReplaceAll(response, "\r\r\n", "\r\n")
-	response = strings.TrimSpace(response)
-	lines := strings.Split(response, "\n")
-	filtered := lines[:0]
+func responseOK(value string) bool {
+	lines := strings.Split(strings.ReplaceAll(value, "\r", ""), "\n")
 	for _, line := range lines {
-		line = strings.TrimRight(line, "\r")
-		if strings.TrimSpace(line) != "" {
-			filtered = append(filtered, line)
+		if strings.TrimSpace(line) == "OK" {
+			return true
 		}
 	}
-	return strings.Join(filtered, "\r\n")
+	return false
+}
+
+func cleanATResponse(value string) string {
+	var lines []string
+	for _, line := range strings.Split(strings.ReplaceAll(value, "\r", ""), "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return strings.Join(lines, "\r\n")
+}
+
+func minDuration(a, b time.Duration) time.Duration {
+	if a < b {
+		return a
+	}
+	return b
 }

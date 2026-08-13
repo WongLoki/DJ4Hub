@@ -27,19 +27,19 @@ func main() {
 	log.SetFlags(log.Ldate | log.Ltime)
 
 	if !noNotify {
-		showNotification("DJOneActivator", "正在检查大疆 4G 模块和 macOS 网卡…")
+		showNotification("DJI 4G Connect", "正在检查大疆 4G 模块和 macOS 网卡…")
 	}
 	result, err := activateDJINetwork(output)
 	if err != nil {
 		log.Printf("激活失败：%v", err)
 		if !noNotify {
-			showNotification("DJOneActivator 激活失败", err.Error())
+			showNotification("DJI 4G Connect 激活失败", err.Error())
 		}
 		os.Exit(1)
 	}
 	log.Printf("%s", result)
 	if !noNotify {
-		showNotification("DJOneActivator", result)
+		showNotification("DJI 4G Connect", result)
 	}
 }
 
@@ -48,11 +48,11 @@ func openLogFile() (*os.File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("读取用户目录失败: %w", err)
 	}
-	directory := filepath.Join(home, "Library", "Logs", "DJOneActivator")
+	directory := filepath.Join(home, "Library", "Logs", "DJI 4G Connect")
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return nil, fmt.Errorf("创建日志目录失败: %w", err)
 	}
-	file, err := os.OpenFile(filepath.Join(directory, "activator.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	file, err := os.OpenFile(filepath.Join(directory, "connect.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("打开日志失败: %w", err)
 	}

@@ -3,13 +3,15 @@ set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 VERSION=${1:-dev}
-APP_NAME=DJOneActivator
+APP_NAME="DJI 4G Connect"
+EXECUTABLE_NAME=DJI4GConnect
+PACKAGE_STEM=DJI-4G-Connect
 DIST_DIR="${ROOT_DIR}/dist"
-ARCHIVE="${DIST_DIR}/${APP_NAME}-macOS-arm64-${VERSION}.zip"
+ARCHIVE="${DIST_DIR}/${PACKAGE_STEM}-macOS-arm64-${VERSION}.zip"
 LIBUSB_VERSION=1.0.30
 LIBUSB_SHA256=fea36f34f9156400209595e300840767ab1a385ede1dc7ee893015aea9c6dbaf
 LIBUSB_URL="https://github.com/libusb/libusb/releases/download/v${LIBUSB_VERSION}/libusb-${LIBUSB_VERSION}.tar.bz2"
-BUILD_ROOT="${TMPDIR:-/tmp}/djoneactivator-build-arm64"
+BUILD_ROOT="${TMPDIR:-/tmp}/dji-4g-connect-build-arm64"
 STAGE_DIR="${BUILD_ROOT}/stage"
 APP_DIR="${STAGE_DIR}/${APP_NAME}.app"
 VERIFY_DIR="${BUILD_ROOT}/verify"
@@ -97,7 +99,7 @@ PKG_CONFIG_PATH="${LIBUSB_SOURCE}" \
 MACOSX_DEPLOYMENT_TARGET=13.0 CGO_CFLAGS="-mmacosx-version-min=13.0" CGO_LDFLAGS="-mmacosx-version-min=13.0" \
 CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build \
   -trimpath -buildvcs=false -ldflags="-s -w" \
-  -o "${APP_DIR}/Contents/MacOS/${APP_NAME}" .
+  -o "${APP_DIR}/Contents/MacOS/${EXECUTABLE_NAME}" .
 
 sed "s/__VERSION__/${VERSION}/g" "${ROOT_DIR}/scripts/Info.plist.in" >"${APP_DIR}/Contents/Info.plist"
 cp "${ROOT_DIR}/README.md" "${APP_DIR}/Contents/Resources/README.md"
@@ -117,7 +119,7 @@ sips -z 512 512 "${ICON_SOURCE}" --out "${ICONSET_DIR}/icon_512x512.png" >/dev/n
 sips -z 1024 1024 "${ICON_SOURCE}" --out "${ICONSET_DIR}/icon_512x512@2x.png" >/dev/null
 iconutil -c icns "${ICONSET_DIR}" -o "${APP_DIR}/Contents/Resources/AppIcon.icns"
 
-chmod 755 "${APP_DIR}/Contents/MacOS/${APP_NAME}" "${APP_DIR}/Contents/Frameworks/libusb-1.0.0.dylib"
+chmod 755 "${APP_DIR}/Contents/MacOS/${EXECUTABLE_NAME}" "${APP_DIR}/Contents/Frameworks/libusb-1.0.0.dylib"
 xattr -cr "${APP_DIR}"
 codesign --force --sign - "${APP_DIR}/Contents/Frameworks/libusb-1.0.0.dylib"
 codesign --force --deep --sign - "${APP_DIR}"
