@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/iniwex5/vohive/internal/modem"
-	"github.com/iniwex5/vohive/pkg/logger"
+	"github.com/WongLoki/dj-4g-hub/internal/modem"
+	"github.com/WongLoki/dj-4g-hub/pkg/logger"
 )
 
 // 后端模式常量

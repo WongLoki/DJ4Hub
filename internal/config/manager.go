@@ -3,7 +3,7 @@ package config
 import (
 	"sync"
 
-	"github.com/iniwex5/vohive/pkg/logger"
+	"github.com/WongLoki/dj-4g-hub/pkg/logger"
 )
 
 var (

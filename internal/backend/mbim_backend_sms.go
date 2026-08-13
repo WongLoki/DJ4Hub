@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/iniwex5/vohive/pkg/logger"
-	"github.com/iniwex5/vohive/pkg/smscodec"
+	"github.com/WongLoki/dj-4g-hub/pkg/logger"
+	"github.com/WongLoki/dj-4g-hub/pkg/smscodec"
 )
 
 func (b *MBIMBackend) SendSMS(ctx context.Context, to, body string) error {

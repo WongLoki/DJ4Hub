@@ -11,24 +11,25 @@ while [ -L "${SOURCE}" ]; do
   esac
 done
 ROOT_DIR=$(CDPATH= cd -P -- "$(dirname -- "${SOURCE}")" && pwd)
-BINARY="${ROOT_DIR}/bin/djonehub-macos"
+BINARY="${ROOT_DIR}/bin/dj4ghub-macos"
 URL="http://127.0.0.1:7575"
-DATA_DIR="${HOME}/Library/Application Support/DJOneHub"
-LOG_DIR="${HOME}/Library/Logs/DJOneHub"
-PID_FILE="${DATA_DIR}/djonehub.pid"
-LOG_FILE="${LOG_DIR}/djonehub.log"
+DATA_DIR="${HOME}/Library/Application Support/DJ 4G Hub"
+LOG_DIR="${HOME}/Library/Logs/DJ 4G Hub"
+PID_FILE="${DATA_DIR}/dj4ghub.pid"
+LOG_FILE="${LOG_DIR}/dj4ghub.log"
 
 usage() {
   cat <<'EOF'
-DJOneHub for macOS
+DJ 4G Hub for macOS
 
 用法：
-  djonehub start          启动并自动打开管理网页
-  djonehub start --demo   启动无硬件演示模式
-  djonehub stop           停止正在运行的程序
-  djonehub status         查看运行状态
-  djonehub logs           查看实时日志（Ctrl+C 退出日志）
-  djonehub open           打开管理网页
+  dj4ghub start          启动并自动打开管理网页
+  dj4ghub start --demo   启动无硬件演示模式
+  dj4ghub activate       清理模块残留网卡并一次性激活上网模式
+  dj4ghub stop           停止正在运行的程序
+  dj4ghub status         查看运行状态
+  dj4ghub logs           查看实时日志（Ctrl+C 退出日志）
+  dj4ghub open           打开管理网页
 EOF
 }
 
@@ -44,7 +45,7 @@ is_running() {
   kill -0 "${pid}" 2>/dev/null || return 1
   command_line=$(ps -p "${pid}" -o command= 2>/dev/null || true)
   case "${command_line}" in
-    */bin/djonehub-macos*) return 0 ;;
+    */bin/dj4ghub-macos*) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -56,7 +57,7 @@ clean_stale_pid() {
 }
 
 open_page() {
-  if [ "${DJONEHUB_NO_OPEN:-0}" = "1" ]; then
+  if [ "${DJ4GHUB_NO_OPEN:-0}" = "1" ]; then
     return 0
   fi
   open "${URL}" >/dev/null 2>&1 || {
@@ -81,7 +82,7 @@ start_service() {
   fi
   clean_stale_pid
   if is_running; then
-    printf 'DJOneHub 已在运行，正在打开管理网页。\n'
+    printf 'DJ 4G Hub 已在运行，正在打开管理网页。\n'
     open_page
     exit 0
   fi
@@ -103,7 +104,7 @@ start_service() {
   stop_child() {
     if [ "${stopping}" -eq 0 ]; then
       stopping=1
-      printf '\n正在停止 DJOneHub...\n'
+      printf '\n正在停止 DJ 4G Hub...\n'
       kill -TERM "${child}" 2>/dev/null || true
     fi
   }
@@ -125,21 +126,21 @@ start_service() {
   done
 
   if [ "${ready}" -eq 1 ]; then
-    printf 'DJOneHub 已启动：%s\n' "${URL}"
+    printf 'DJ 4G Hub 已启动：%s\n' "${URL}"
     printf '日志文件：%s\n' "${LOG_FILE}"
     printf '按 Ctrl+C 即可停止。\n'
     open_page
   else
-    printf 'DJOneHub 未能正常启动，请查看日志：%s\n' "${LOG_FILE}" >&2
+    printf 'DJ 4G Hub 未能正常启动，请查看日志：%s\n' "${LOG_FILE}" >&2
   fi
 
   wait "${child}"
   status=$?
   trap - INT TERM HUP
   if [ "${stopping}" -eq 0 ] && [ "${status}" -ne 0 ]; then
-    printf 'DJOneHub 异常退出（状态码 %s），请查看日志：%s\n' "${status}" "${LOG_FILE}" >&2
+    printf 'DJ 4G Hub 异常退出（状态码 %s），请查看日志：%s\n' "${status}" "${LOG_FILE}" >&2
   else
-    printf 'DJOneHub 已停止。\n'
+    printf 'DJ 4G Hub 已停止。\n'
   fi
   exit "${status}"
 }
@@ -147,7 +148,7 @@ start_service() {
 stop_service() {
   clean_stale_pid
   if ! is_running; then
-    printf 'DJOneHub 当前没有运行。\n'
+    printf 'DJ 4G Hub 当前没有运行。\n'
     exit 0
   fi
   pid=$(read_pid)
@@ -158,21 +159,34 @@ stop_service() {
     sleep 0.1
   done
   if kill -0 "${pid}" 2>/dev/null; then
-    printf 'DJOneHub 尚未退出，请回到启动它的终端按 Ctrl+C。\n' >&2
+    printf 'DJ 4G Hub 尚未退出，请回到启动它的终端按 Ctrl+C。\n' >&2
     exit 1
   fi
   rm -f "${PID_FILE}"
-  printf 'DJOneHub 已停止。\n'
+  printf 'DJ 4G Hub 已停止。\n'
 }
 
 show_status() {
   clean_stale_pid
   if is_running; then
-    printf 'DJOneHub 正在运行（PID %s）\n' "$(read_pid)"
+    printf 'DJ 4G Hub 正在运行（PID %s）\n' "$(read_pid)"
     printf '管理网页：%s\n' "${URL}"
   else
-    printf 'DJOneHub 当前没有运行。\n'
+    printf 'DJ 4G Hub 当前没有运行。\n'
   fi
+}
+
+activate_network() {
+  if [ ! -x "${BINARY}" ]; then
+    printf '激活失败：缺少可执行文件 %s\n' "${BINARY}" >&2
+    exit 1
+  fi
+  clean_stale_pid
+  if is_running || /usr/sbin/lsof -nP -iTCP:7575 -sTCP:LISTEN >/dev/null 2>&1; then
+    printf '激活前请先执行 dj4ghub stop，释放模块 USB AT 接口。\n' >&2
+    exit 1
+  fi
+  exec "${BINARY}" -activate
 }
 
 case "${1:-}" in
@@ -182,6 +196,7 @@ case "${1:-}" in
       *) usage; exit 2 ;;
     esac
     ;;
+  activate) activate_network ;;
   stop) stop_service ;;
   status) show_status ;;
   logs)

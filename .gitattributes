@@ -1,4 +1,4 @@
-# Keep GitHub language statistics focused on DJOneHub's own source.
+# Keep GitHub language statistics focused on DJ 4G Hub's own source.
 third_party/** linguist-vendored
 
 # Documentation and bundled screenshots are not application source.

@@ -1,4 +1,4 @@
-module github.com/iniwex5/vohive
+module github.com/WongLoki/dj-4g-hub
 
 go 1.26.3
 

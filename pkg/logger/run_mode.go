@@ -15,7 +15,7 @@ var (
 )
 
 // IsGoRun 返回当前进程是否大概率由 `go run` 启动。
-// 也支持通过 VOHIVE_FORCE_GO_RUN_LOG=true/false 手动覆盖判定结果。
+// 也支持通过 DJ4GHUB_FORCE_GO_RUN_LOG=true/false 手动覆盖判定结果。
 func IsGoRun() bool {
 	goRunOnce.Do(func() {
 		goRunMode = detectGoRunMode()
@@ -24,7 +24,12 @@ func IsGoRun() bool {
 }
 
 func detectGoRunMode() bool {
-	if raw := strings.TrimSpace(os.Getenv("VOHIVE_FORCE_GO_RUN_LOG")); raw != "" {
+	raw := strings.TrimSpace(os.Getenv("DJ4GHUB_FORCE_GO_RUN_LOG"))
+	if raw == "" {
+		// Keep the upstream variable as a compatibility fallback for existing setups.
+		raw = strings.TrimSpace(os.Getenv("VOHIVE_FORCE_GO_RUN_LOG"))
+	}
+	if raw != "" {
 		if v, err := strconv.ParseBool(raw); err == nil {
 			return v
 		}

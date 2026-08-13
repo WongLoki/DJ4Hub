@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/iniwex5/vohive/pkg/logger"
+	"github.com/WongLoki/dj-4g-hub/pkg/logger"
 )
 
 var ErrAPDUBusy = errors.New("apdu busy")
@@ -132,7 +132,7 @@ type activeBarrier struct {
 
 type Arbiter struct {
 	// 64 位 atomic 变量必须放在头部
-	seq              uint64
+	seq uint64
 
 	deviceID string
 	opts     Options

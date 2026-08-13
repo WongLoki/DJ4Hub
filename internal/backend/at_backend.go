@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/iniwex5/vohive/internal/modem"
-	"github.com/iniwex5/vohive/pkg/smscodec"
+	"github.com/WongLoki/dj-4g-hub/internal/modem"
+	"github.com/WongLoki/dj-4g-hub/pkg/smscodec"
 )
 
 // ATBackend AT 后端适配器 — 纯包装层，委托给现有 modem.Manager

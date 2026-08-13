@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-DJOneHub contains code derived from the upstream VoHive project and retains the license and required notice provided in the repository root [`LICENSE`](LICENSE):
+DJ 4G Hub contains code derived from the upstream VoHive project and work inspired by ZenGeekLabs/DJOneHub. It retains the license and required notice provided in the repository root [`LICENSE`](LICENSE):
 
 ```text
 Required Notice: Copyright iniwex5 (https://github.com/iniwex5/vohive)
@@ -16,7 +16,7 @@ The macOS release package includes **libusb 1.0.30**, distributed under the GNU 
 
 ## Vendored Source Dependencies
 
-The source repository includes vendored dependencies under `third_party/` so the versions used by DJOneHub remain reproducible. Their original copyright notices and license texts are retained in the corresponding directories.
+The source repository includes vendored dependencies under `third_party/` so the versions used by DJ 4G Hub remain reproducible. Their original copyright notices and license texts are retained in the corresponding directories.
 
 | Component | License file |
 | --- | --- |

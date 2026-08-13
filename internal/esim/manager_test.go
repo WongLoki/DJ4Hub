@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/WongLoki/dj-4g-hub/internal/backend"
 	"github.com/damonto/euicc-go/bertlv"
 	"github.com/damonto/euicc-go/bertlv/primitive"
 	"github.com/damonto/euicc-go/driver"
@@ -21,7 +22,6 @@ import (
 	"github.com/damonto/euicc-go/lpa"
 	sgp22 "github.com/damonto/euicc-go/v2"
 	qmiq "github.com/iniwex5/quectel-qmi-go/pkg/qmi"
-	"github.com/iniwex5/vohive/internal/backend"
 	"golang.org/x/sync/singleflight"
 )
 

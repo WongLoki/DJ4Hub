@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/iniwex5/vohive/pkg/smscodec"
+	"github.com/WongLoki/dj-4g-hub/pkg/smscodec"
 )
 
 func TestATResponseCompleteRecognizesModemErrors(t *testing.T) {

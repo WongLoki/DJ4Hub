@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/iniwex5/vohive/internal/apduarbiter"
+	"github.com/WongLoki/dj-4g-hub/internal/apduarbiter"
 )
 
 type fakeUICC struct {

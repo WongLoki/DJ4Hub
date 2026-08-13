@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/WongLoki/dj-4g-hub/pkg/mbim"
 	"github.com/iniwex5/quectel-qmi-go/pkg/manager"
-	"github.com/iniwex5/vohive/pkg/mbim"
 )
 
 // MBIMSource is the adapter surface MBIMBackend needs from internal/mbim.

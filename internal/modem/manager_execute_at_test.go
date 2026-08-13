@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/iniwex5/vohive/internal/config"
+	"github.com/WongLoki/dj-4g-hub/internal/config"
 	"go.bug.st/serial"
 )
 

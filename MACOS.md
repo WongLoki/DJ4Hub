@@ -1,4 +1,4 @@
-# DJOneHub for macOS
+# DJ 4G Hub for macOS
 
 This branch adds a native macOS service for the DJI Cellular Dongle / Quectel
 EG25-G. It does not require UTM for AT-mode management.
@@ -14,25 +14,25 @@ EG25-G. It does not require UTM for AT-mode management.
 - Packaged Apple Silicon release (Intel packaging is planned separately)
 
 The cellular data interface remains managed by macOS. This allows macOS to use
-the dongle as its network connection while DJOneHub uses a separate USB serial
+the dongle as its network connection while DJ 4G Hub uses a separate USB serial
 interface for management.
 
 ## Downloaded release
 
 The Apple Silicon ZIP contains the executable, its libusb runtime, licenses and
-the `djonehub` terminal launcher. It does not require Go, Homebrew or a separately
+the `dj4ghub` terminal launcher. It does not require Go, Homebrew or a separately
 installed libusb on the user's Mac.
 
 From the extracted release directory:
 
 ```sh
-./djonehub start
+./dj4ghub start
 ```
 
 The terminal remains attached to the service and the management page opens
-automatically. Press `Control+C` to stop it, or run `./djonehub stop` from another
+automatically. Press `Control+C` to stop it, or run `./dj4ghub stop` from another
 terminal in the same directory. Logs are stored in
-`~/Library/Logs/DJOneHub/djonehub.log`.
+`~/Library/Logs/DJ 4G Hub/dj4ghub.log`.
 
 ## Build from source
 
@@ -47,9 +47,9 @@ Requirements:
 
 Release outputs:
 
-- `dist/release/DJOneHub-macOS-arm64-v0.1.0-preview/`
-- `dist/release/DJOneHub-macOS-arm64-v0.1.0-preview.zip`
-- `dist/release/DJOneHub-macOS-arm64-v0.1.0-preview.zip.sha256`
+- `dist/release/DJ-4G-Hub-macOS-arm64-v0.1.0-preview/`
+- `dist/release/DJ-4G-Hub-macOS-arm64-v0.1.0-preview.zip`
+- `dist/release/DJ-4G-Hub-macOS-arm64-v0.1.0-preview.zip.sha256`
 
 The packaging script downloads the official libusb source archive, verifies its
 SHA-256, builds it for macOS 13 or newer and bundles the resulting runtime.
@@ -59,13 +59,13 @@ SHA-256, builds it for macOS 13 or newer and bundles the resulting runtime.
 Connect the modem and run:
 
 ```sh
-./dist/djonehub-macos
+./dist/dj4ghub-macos
 ```
 
 If automatic discovery picks no AT port, inspect `/dev/cu.*` and pass it:
 
 ```sh
-./dist/djonehub-macos -port /dev/cu.usbmodemXXXX
+./dist/dj4ghub-macos -port /dev/cu.usbmodemXXXX
 ```
 
 The server only listens on localhost by default. Open:
@@ -79,20 +79,29 @@ http://127.0.0.1:7575
 To explore the management page before buying the module, run:
 
 ```sh
-./dist/djonehub-macos -demo
+./dist/dj4ghub-macos -demo
 ```
 
 Then open `http://127.0.0.1:7575`. Demo mode provides simulated modem status,
 SMS messages, AT command responses and eSIM profiles. It does not access a real
 SIM, send messages or switch a physical eSIM profile.
 
-## Launch at login
+## One-shot network activation
+
+To prepare the ECM network interface without starting the web service, stop any
+running DJ 4G Hub service and run:
 
 ```sh
-./scripts/install-macos.sh
+./dj4ghub activate
 ```
 
-Logs are written to `~/Library/Logs/DJOneHub`.
+The command removes or disables only orphaned Baiwang/EG25/QDC507 network
+services, ensures `usbnet=1`, reboots the module when the ECM interface is
+unavailable, waits for macOS DHCP, and then exits.
+
+## Logs
+
+Logs are written to `~/Library/Logs/DJ 4G Hub/dj4ghub.log`.
 
 ## Platform limitations
 

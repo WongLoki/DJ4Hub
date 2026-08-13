@@ -1,76 +1,58 @@
-# DJOneHub for macOS（Apple Silicon）
+# DJ 4G Hub for macOS（Apple Silicon）
 
-适用于搭载 Apple M 系列芯片的 Mac，以及大疆一代 4G 模块（USB `2ca3:4006`）。
+这是 DJ 4G Hub 的完整便携发行包，已经包含程序、启动器和 `libusb`，无需安装 Go 或 Homebrew。
 
-## 安装（推荐）
+## 安装
 
-1. 将下载的 ZIP 完整解压，不要只单独拖出其中某个文件。
-2. 打开“终端”，输入 `cd `（后面留一个空格），把解压得到的文件夹拖入终端，然后按回车。
-3. 执行一次安装命令：
-
-   ```sh
-   ./install
-   ```
-
-   安装过程可能要求输入 Mac 管理员密码。输入密码时终端不会显示圆点或星号，这是正常现象。
-
-安装完成后，可以在终端的任意目录执行：
+在完整解压后的目录执行：
 
 ```sh
-djonehub start
+./install
 ```
 
-程序会自动打开 `http://127.0.0.1:7575`。启动程序的终端需要保持打开；按 `Control+C` 即可停止。
-
-也可以在另一个终端的任意目录执行：
+安装完成后：
 
 ```sh
-djonehub stop
+dj4ghub start
 ```
 
-## 免安装使用
+浏览器会自动打开 `http://127.0.0.1:7575/`。启动终端需要保持运行；按 `Control+C` 或在另一个终端执行以下命令停止：
 
-如果不想安装，也可以一直保留解压后的文件夹，在该目录执行：
+```sh
+dj4ghub stop
+```
 
-   ```sh
-   ./djonehub start
-   ```
+## 免安装运行
+
+也可以留在当前目录直接运行：
+
+```sh
+./dj4ghub start
+```
 
 ## 常用命令
 
-```sh
-djonehub status       # 查看状态
-djonehub logs         # 查看实时日志
-djonehub open         # 重新打开管理网页
-djonehub start --demo # 不连接硬件，打开演示界面
+```text
+dj4ghub status       查看状态
+dj4ghub activate     不启动网页；清理残留网卡并激活上网
+dj4ghub logs         查看实时日志
+dj4ghub open         重新打开管理页面
+dj4ghub start --demo 启动无硬件演示界面
 ```
 
-## macOS 阻止打开时
+## macOS 安全提示
 
-本软件目前没有 Apple Developer ID 签名。首次启动如果被 macOS 阻止，请打开“系统设置 → 隐私与安全性”，确认仍要打开。
-
-如果系统仍提示文件损坏，可在当前目录执行：
+当前预览包尚未经过 Apple Developer ID 公证。请优先核对 Release 提供的 SHA-256。若 macOS 仍阻止已确认来源的文件，可在当前发行包目录执行：
 
 ```sh
-xattr -dr com.apple.quarantine ./djonehub ./bin ./lib
-./djonehub start
+xattr -dr com.apple.quarantine ./dj4ghub ./bin ./lib
+./dj4ghub start
 ```
-
-请只对从可信发布页面下载并核对过 SHA-256 的文件执行该命令。
 
 ## 日志
 
-程序日志保存在：
-
 ```text
-~/Library/Logs/DJOneHub/djonehub.log
+~/Library/Logs/DJ 4G Hub/dj4ghub.log
 ```
 
-终端只显示启动、停止和错误摘要，不会持续刷出底层 USB 日志。
-
-## 当前限制
-
-- 支持 macOS 13 Ventura 至 macOS 26 Tahoe；当前发行包仅支持 Apple Silicon，不支持 Intel Mac。
-- 仅监听本机地址，局域网中的其他设备无法直接访问管理网页。
-- 本项目为非官方工具，与 DJI、Quectel、运营商及 eSIM 卡片厂商无隶属或授权关系。
-- 使用短信、蜂窝数据和 eSIM 前，请确认运营商资费、漫游规则及当地法律要求。
+项目来源、非官方声明和许可证信息请查看仓库根目录的 `README.md`、`LICENSE` 与 `THIRD_PARTY_NOTICES.md`。

@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"github.com/iniwex5/vohive/internal/modem"
+	"github.com/WongLoki/dj-4g-hub/internal/modem"
 )
 
 // SIM EF file identifiers (3GPP TS 31.102 / 51.011).

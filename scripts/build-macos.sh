@@ -15,8 +15,8 @@ export PKG_CONFIG_PATH
 CGO_ENABLED=1 GOOS=darwin GOARCH="${ARCH}" go build \
   -p 2 \
   -trimpath -ldflags="-s -w" \
-  -o "${DIST_DIR}/djonehub-macos-${ARCH}" ./cmd/djonehub-macos
+  -o "${DIST_DIR}/dj4ghub-macos-${ARCH}" ./cmd/dj4ghub-macos
 
-cp "${DIST_DIR}/djonehub-macos-${ARCH}" "${DIST_DIR}/djonehub-macos"
+cp "${DIST_DIR}/dj4ghub-macos-${ARCH}" "${DIST_DIR}/dj4ghub-macos"
 
 echo "macOS binaries written to ${DIST_DIR}"

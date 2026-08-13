@@ -3,7 +3,7 @@ set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 VERSION=${1:-dev}
-PACKAGE_NAME="DJOneHub-macOS-arm64-${VERSION}"
+PACKAGE_NAME="DJ-4G-Hub-macOS-arm64-${VERSION}"
 STAGE_ROOT="${ROOT_DIR}/dist/release"
 STAGE_DIR="${STAGE_ROOT}/${PACKAGE_NAME}"
 ARCHIVE="${STAGE_ROOT}/${PACKAGE_NAME}.zip"
@@ -11,7 +11,7 @@ CHECKSUM="${ARCHIVE}.sha256"
 LIBUSB_VERSION=1.0.30
 LIBUSB_SHA256=fea36f34f9156400209595e300840767ab1a385ede1dc7ee893015aea9c6dbaf
 LIBUSB_URL="https://github.com/libusb/libusb/releases/download/v${LIBUSB_VERSION}/libusb-${LIBUSB_VERSION}.tar.bz2"
-BUILD_ROOT="${TMPDIR:-/tmp}/djonehub-macos-package-arm64"
+BUILD_ROOT="${TMPDIR:-/tmp}/dj4ghub-macos-package-arm64"
 LIBUSB_ARCHIVE="${BUILD_ROOT}/libusb-${LIBUSB_VERSION}.tar.bz2"
 LIBUSB_SOURCE="${BUILD_ROOT}/libusb-source"
 LIBUSB_PREFIX="${BUILD_ROOT}/libusb-prefix"
@@ -97,21 +97,21 @@ PKG_CONFIG_PATH="${LIBUSB_SOURCE}" \
 MACOSX_DEPLOYMENT_TARGET=13.0 CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build \
   -p 2 \
   -trimpath -buildvcs=false -ldflags="-s -w" \
-  -o "${STAGE_DIR}/bin/djonehub-macos" ./cmd/djonehub-macos
+  -o "${STAGE_DIR}/bin/dj4ghub-macos" ./cmd/dj4ghub-macos
 
 cp "${LIBUSB_PREFIX}/lib/libusb-1.0.0.dylib" "${STAGE_DIR}/lib/libusb-1.0.0.dylib"
-cp "${ROOT_DIR}/packaging/djonehub" "${STAGE_DIR}/djonehub"
+cp "${ROOT_DIR}/packaging/dj4ghub" "${STAGE_DIR}/dj4ghub"
 cp "${ROOT_DIR}/packaging/install" "${STAGE_DIR}/install"
 cp "${ROOT_DIR}/packaging/README.md" "${STAGE_DIR}/README.md"
 cp "${ROOT_DIR}/LICENSE" "${STAGE_DIR}/LICENSE"
 cp "${LIBUSB_SOURCE}/COPYING" "${STAGE_DIR}/licenses/libusb-COPYING"
 cp "${ROOT_DIR}/packaging/THIRD_PARTY_NOTICES.md" "${STAGE_DIR}/THIRD_PARTY_NOTICES.md"
 
-chmod 755 "${STAGE_DIR}/djonehub" "${STAGE_DIR}/install" "${STAGE_DIR}/bin/djonehub-macos" "${STAGE_DIR}/lib/libusb-1.0.0.dylib"
+chmod 755 "${STAGE_DIR}/dj4ghub" "${STAGE_DIR}/install" "${STAGE_DIR}/bin/dj4ghub-macos" "${STAGE_DIR}/lib/libusb-1.0.0.dylib"
 codesign --force --sign - "${STAGE_DIR}/lib/libusb-1.0.0.dylib"
-codesign --force --sign - "${STAGE_DIR}/bin/djonehub-macos"
+codesign --force --sign - "${STAGE_DIR}/bin/dj4ghub-macos"
 
-if otool -L "${STAGE_DIR}/bin/djonehub-macos" | grep -q '/opt/homebrew\|/usr/local\|/Cellar/'; then
+if otool -L "${STAGE_DIR}/bin/dj4ghub-macos" | grep -q '/opt/homebrew\|/usr/local\|/Cellar/'; then
   echo "Release binary still contains a package-manager dependency." >&2
   exit 1
 fi

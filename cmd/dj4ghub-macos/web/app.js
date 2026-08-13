@@ -12,10 +12,12 @@ let networkActivityCountdown = 5;
 function setThemePreference(theme) {
   if (theme === "light" || theme === "dark") {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem("djonehub-theme", theme);
+    localStorage.setItem("dj4ghub-theme", theme);
+    localStorage.removeItem("djonehub-theme");
     localStorage.removeItem("vohive-theme");
   } else {
     delete document.documentElement.dataset.theme;
+    localStorage.removeItem("dj4ghub-theme");
     localStorage.removeItem("djonehub-theme");
     localStorage.removeItem("vohive-theme");
   }
@@ -24,7 +26,7 @@ function setThemePreference(theme) {
   });
 }
 
-const savedTheme = localStorage.getItem("djonehub-theme") || localStorage.getItem("vohive-theme");
+const savedTheme = localStorage.getItem("dj4ghub-theme") || localStorage.getItem("djonehub-theme") || localStorage.getItem("vohive-theme");
 setThemePreference(savedTheme === "light" || savedTheme === "dark" ? savedTheme : "auto");
 document.querySelectorAll("[data-theme-option]").forEach((button) => {
   button.addEventListener("click", () => setThemePreference(button.dataset.themeOption));
@@ -730,7 +732,7 @@ async function loadNetworkTraffic() {
     setValue("#traffic-session-rx", formatTrafficBytes(sample.session_rx_bytes), "neutral");
     setValue("#traffic-session-tx", formatTrafficBytes(sample.session_tx_bytes), "neutral");
     setValue("#traffic-session-total", formatTrafficBytes(sample.session_total_bytes), "neutral");
-    $("#traffic-session-total").title = "本次启动期间的下载与上传流量之和；关闭 DJOneHub 后清零";
+    $("#traffic-session-total").title = "本次启动期间的下载与上传流量之和；关闭 DJ 4G Hub 后清零";
   } catch (error) {
     setValue("#traffic-rx-rate", "--", "muted");
     setValue("#traffic-tx-rate", "--", "muted");

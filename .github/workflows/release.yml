@@ -1,0 +1,34 @@
+name: Release macOS
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release-macos-arm64:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install build dependencies
+        run: brew install pkg-config libusb
+      - name: Test
+        run: go test ./...
+        env:
+          PKG_CONFIG_PATH: /opt/homebrew/lib/pkgconfig
+      - name: Build release archive
+        run: ./scripts/package-macos-arm64.sh "${GITHUB_REF_NAME}"
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "${GITHUB_REF_NAME}"
+          dist/release/DJ-4G-Hub-macOS-arm64-${GITHUB_REF_NAME}.zip
+          dist/release/DJ-4G-Hub-macOS-arm64-${GITHUB_REF_NAME}.zip.sha256
+          --generate-notes

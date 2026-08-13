@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install native dependencies
+        run: brew install pkg-config libusb
+      - name: Check scripts
+        run: sh -n packaging/dj4ghub packaging/install scripts/build-macos.sh scripts/package-macos-arm64.sh
+      - name: Test
+        run: go test ./...

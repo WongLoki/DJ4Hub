@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>DJOneHub · 设备控制台</title>
+  <title>DJ 4G Hub · 设备控制台</title>
   <script>
     try {
-      const theme = localStorage.getItem("djonehub-theme") || localStorage.getItem("vohive-theme");
+      const theme = localStorage.getItem("dj4ghub-theme") || localStorage.getItem("djonehub-theme") || localStorage.getItem("vohive-theme");
       if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
     } catch (_) {}
   </script>
@@ -21,7 +21,7 @@
           <span></span><span></span><span></span><span></span>
         </div>
         <div>
-          <strong>DJOneHub</strong>
+          <strong>DJ 4G Hub</strong>
           <small>macOS Console</small>
         </div>
       </div>
@@ -88,7 +88,7 @@
     <main class="app-main">
       <header class="app-header">
         <div class="page-heading">
-          <div class="mobile-brand"><span class="brand-glyph mini" aria-hidden="true"><span></span><span></span><span></span><span></span></span>DJOneHub</div>
+          <div class="mobile-brand"><span class="brand-glyph mini" aria-hidden="true"><span></span><span></span><span></span><span></span></span>DJ 4G Hub</div>
           <span class="page-kicker">DEVICE WORKSPACE</span>
           <h1>设备控制台</h1>
           <p id="device-summary">正在连接大疆 4G 模块</p>
