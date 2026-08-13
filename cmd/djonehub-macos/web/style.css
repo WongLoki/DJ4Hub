@@ -184,6 +184,11 @@ svg { display: block; }
 
 .header-actions, .heading-actions, .control-panel, .profile-actions, .sms-actions { display: flex; align-items: center; gap: 8px; }
 .header-actions { flex: none; }
+.header-device-state { display: flex; min-height: 30px; align-items: center; gap: 7px; border-radius: 999px; padding: 0 10px; background: var(--surface-soft); color: var(--muted); font-size: 9px; white-space: nowrap; }
+.header-device-state i { width: 6px; height: 6px; border-radius: 50%; background: var(--warning); box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning) 11%, transparent); }
+.header-device-state.is-online { color: var(--text-default); }
+.header-device-state.is-online i { background: var(--positive); box-shadow: 0 0 0 3px color-mix(in srgb, var(--positive) 11%, transparent); }
+.header-device-state.is-offline i { background: var(--negative); box-shadow: 0 0 0 3px color-mix(in srgb, var(--negative) 11%, transparent); }
 .mode-control { display: flex; align-items: center; gap: 3px; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
 .mode-control > span { padding: 0 8px 0 10px; color: var(--dim); font-size: 9px; }
 .mode-option { display: flex; min-height: 28px; align-items: center; gap: 5px; border-color: transparent; padding: 0 11px; background: transparent; color: var(--muted); font-size: 9px; }
@@ -212,6 +217,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .icon-button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
 
 .overview { max-width: 1100px; margin: 0 auto; }
+.view.overview { margin-top: 0; }
 .overview-heading { display: flex; min-height: 32px; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 9px; padding: 0 2px; }
 .overview-heading > div { display: flex; align-items: center; gap: 8px; }
 .overview-heading strong { color: var(--text-default); font-size: 11px; font-weight: 550; }
@@ -403,7 +409,7 @@ body.modal-open { overflow: hidden; }
 @media (max-width: 760px) {
   .app-sidebar { position: static; width: 100%; height: auto; border-bottom: 1px solid var(--line); padding: 10px 14px; box-shadow: none; }
   .sidebar-brand, .device-presence, .nav-label, .sidebar-footer > p { display: none; }
-  .task-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); order: 2; }
+  .task-nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); order: 2; }
   .tab { min-height: 48px; justify-content: center; gap: 6px; padding: 5px; }
   .tab > span { display: block; }
   .tab strong { font-size: 10px; }

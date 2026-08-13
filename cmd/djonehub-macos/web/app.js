@@ -212,6 +212,13 @@ function setWorkModeControl(value) {
   networkButton.setAttribute("aria-pressed", currentMode === 1 ? "true" : "false");
 }
 
+function setHeaderDeviceState(connected, label = "设备在线") {
+  const indicator = $("#header-device-state");
+  indicator.classList.toggle("is-online", connected);
+  indicator.classList.toggle("is-offline", !connected);
+  indicator.querySelector("span").textContent = label;
+}
+
 function signalTone(dbm) {
   const value = Number(dbm);
   if (!Number.isFinite(value) || value === 0) return "muted";
@@ -225,6 +232,8 @@ function signalTone(dbm) {
 async function loadStatus() {
   try {
     const status = await api("/api/status");
+    const connected = Boolean(status.usb_device || status.imei || status.firmware || status.operator || status.sim_inserted);
+    setHeaderDeviceState(connected, connected ? "设备在线" : "等待设备");
     setValue("#operator", displayOperatorName(status.operator), status.operator ? "neutral" : "muted");
     setValue("#signal", status.signal_dbm ? `${status.signal_dbm} dBm` : "--", signalTone(status.signal_dbm));
     setValue("#network-mode", status.network_mode || status.reg_status_text || "--", status.network_mode ? "neutral" : "muted");
@@ -243,6 +252,7 @@ async function loadStatus() {
     renderHardwareDetails(status);
   } catch (error) {
     $("#device-summary").textContent = error.message;
+    setHeaderDeviceState(false, "设备离线");
     setWorkModeControl(null);
   }
 }

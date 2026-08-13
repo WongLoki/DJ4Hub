@@ -37,7 +37,11 @@
 
       <nav class="task-nav" aria-label="功能导航">
         <p class="nav-label">模块管理</p>
-        <button class="tab active" data-view="sms" type="button" aria-current="page">
+        <button class="tab active" data-view="overview" type="button" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>
+          <span><strong>概览</strong><small>设备实时状态</small></span>
+        </button>
+        <button class="tab" data-view="sms" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.8A2.8 2.8 0 0 1 7.8 4h8.4A2.8 2.8 0 0 1 19 6.8v5.4a2.8 2.8 0 0 1-2.8 2.8H11l-4.5 3v-3.1A2.8 2.8 0 0 1 5 12.2Z"/><path d="M8.5 8.5h7M8.5 11.5h4.7"/></svg>
           <span><strong>短信</strong><small>收件箱与发送</small></span>
         </button>
@@ -83,6 +87,7 @@
           <p id="device-summary">正在连接大疆 4G 模块</p>
         </div>
         <div class="header-actions">
+          <span id="header-device-state" class="header-device-state" role="status"><i aria-hidden="true"></i><span>正在连接</span></span>
           <div class="mode-control" aria-label="模块工作模式">
             <span>切换模式</span>
             <button id="workmode-sms" class="mode-option" type="button" aria-pressed="false"><span class="mode-check" aria-hidden="true">✓</span>短信模式</button>
@@ -94,7 +99,7 @@
         </div>
       </header>
 
-      <section class="overview" aria-label="设备状态">
+      <section id="overview" class="view overview active" aria-label="设备状态">
         <div class="overview-heading">
           <div><span class="live-dot" aria-hidden="true"></span><strong>实时状态</strong></div>
           <small>每 1 秒更新流量 · 每 10 秒同步设备</small>
@@ -111,11 +116,11 @@
           <div><span>本次上传</span><strong id="traffic-session-tx">--</strong></div>
           <div><span>会话总流量</span><strong id="traffic-session-total">--</strong></div>
         </div>
+        <section id="hardware-details" class="hardware-details" hidden></section>
+        <p id="workmode-status" class="inline-status attention" hidden></p>
       </section>
-      <section id="hardware-details" class="hardware-details" hidden></section>
-      <p id="workmode-status" class="inline-status attention" hidden></p>
 
-      <section id="sms" class="view active">
+      <section id="sms" class="view">
         <div class="view-intro">
           <div><span class="section-kicker">MESSAGES</span><h2>短信</h2><p>读取 SIM 与模块存储，验证码会自动识别。</p></div>
           <div class="view-meta"><span>自动轮询</span><strong>5s</strong></div>
