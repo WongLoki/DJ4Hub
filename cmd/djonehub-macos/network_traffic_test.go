@@ -24,6 +24,17 @@ func TestSelectUSBTrafficInterfacePrefersDefaultRoute(t *testing.T) {
 	}
 }
 
+func TestSelectUSBTrafficInterfaceUsesActiveNonWiFiEthernet(t *testing.T) {
+	interfaces := []macNetInterface{
+		{Name: "en0", Kind: "ethernet", Status: "active", IPv4: "192.168.1.29"},
+		{Name: "en3", Kind: "ethernet", Status: "inactive"},
+		{Name: "en9", Kind: "ethernet", Status: "active", IPv4: "192.168.225.23"},
+	}
+	if got := selectUSBTrafficInterface(interfaces, macDefaultRoute{Interface: "utun14"}); got != "en9" {
+		t.Fatalf("selected interface = %q, want en9", got)
+	}
+}
+
 func TestSessionTrafficIsDownloadPlusUpload(t *testing.T) {
 	rx, tx, total := sessionTrafficFromCounters(
 		networkByteCounters{RX: 8192, TX: 4096},

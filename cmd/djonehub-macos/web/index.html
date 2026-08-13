@@ -26,13 +26,20 @@
         </div>
       </div>
 
-      <div class="device-presence">
-        <span class="presence-light" aria-hidden="true"></span>
-        <div>
-          <small>本地设备</small>
-          <strong>DJI 4G Module</strong>
+      <div class="sidebar-device-stack">
+        <div class="device-presence">
+          <span class="presence-light" aria-hidden="true"></span>
+          <div>
+            <small>本地设备</small>
+            <strong>DJI 4G Module</strong>
+          </div>
+          <span class="presence-state">USB</span>
         </div>
-        <span class="presence-state">USB</span>
+        <div id="sidebar-connection" class="sidebar-connection" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17.5h14M7 14l3-3 2.5 2 4.5-5"/><path d="M14 8h3v3"/></svg>
+          <div><small>联网连接</small><strong id="sidebar-connection-detail">--</strong></div>
+          <span id="sidebar-connection-state">已连接</span>
+        </div>
       </div>
 
       <nav class="task-nav" aria-label="功能导航">

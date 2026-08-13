@@ -157,6 +157,12 @@ type macDefaultRoute struct {
 	Gateway   string `json:"gateway"`
 }
 
+type localNetworkConnection struct {
+	Interface string `json:"interface"`
+	IPv4      string `json:"ipv4"`
+	IsDefault bool   `json:"is_default"`
+}
+
 type networkByteCounters struct {
 	RX uint64
 	TX uint64
@@ -706,6 +712,7 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("POST /api/sms/clear-module", a.clearModuleSMS)
 	mux.HandleFunc("POST /api/at", a.executeAT)
 	mux.HandleFunc("GET /api/network", a.networkDiagnostic)
+	mux.HandleFunc("GET /api/network/local", a.localNetworkConnection)
 	mux.HandleFunc("GET /api/network/traffic", a.networkTraffic)
 	mux.HandleFunc("POST /api/network/check-4g", a.check4GRoute)
 	mux.HandleFunc("POST /api/network/check-proxy", a.checkProxyRoute)
@@ -1402,6 +1409,31 @@ func (a *app) networkDiagnostic(w http.ResponseWriter, _ *http.Request) {
 		diag.Errors = nil
 	}
 	writeJSON(w, http.StatusOK, diag)
+}
+
+func (a *app) localNetworkConnection(w http.ResponseWriter, _ *http.Request) {
+	if discoverDJIUSBDevice() == nil {
+		writeJSON(w, http.StatusOK, nil)
+		return
+	}
+	interfaces := discoverMacNetworkInterfaces()
+	route := discoverMacDefaultRoute()
+	name := selectUSBTrafficInterface(interfaces, route)
+	if name == "" {
+		writeJSON(w, http.StatusOK, nil)
+		return
+	}
+	for _, item := range interfaces {
+		if item.Name == name {
+			writeJSON(w, http.StatusOK, localNetworkConnection{
+				Interface: name,
+				IPv4:      item.IPv4,
+				IsDefault: name == route.Interface,
+			})
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, nil)
 }
 
 func (a *app) networkTraffic(w http.ResponseWriter, _ *http.Request) {

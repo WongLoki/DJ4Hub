@@ -124,12 +124,12 @@ svg { display: block; }
 .brand-glyph.mini { width: 22px; height: 22px; padding: 5px; }
 .brand-glyph.mini > span { width: 2px; }
 
+.sidebar-device-stack { display: grid; gap: 6px; margin-bottom: 20px; }
 .device-presence {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
-  margin-bottom: 20px;
   border: 1px solid var(--hairline);
   border-radius: 12px;
   padding: 11px;
@@ -140,6 +140,14 @@ svg { display: block; }
 .device-presence small { color: var(--dim); font-size: 9px; letter-spacing: .04em; }
 .device-presence strong { overflow: hidden; color: var(--text-default); font-size: 11px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
 .presence-state { border-radius: 999px; padding: 3px 6px; background: var(--positive-soft); color: var(--positive); font-size: 8px; font-weight: 700; letter-spacing: .06em; }
+.sidebar-connection { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; border-radius: 10px; padding: 9px 10px; background: var(--surface-soft); }
+.sidebar-connection[hidden] { display: none; }
+.sidebar-connection > svg { width: 15px; height: 15px; fill: none; stroke: var(--positive); stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
+.sidebar-connection > div { display: grid; min-width: 0; gap: 2px; }
+.sidebar-connection small { color: var(--dim); font-size: 8px; }
+.sidebar-connection strong { overflow: hidden; color: var(--text-default); font-size: 9px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-connection > span { color: var(--positive); font-size: 8px; white-space: nowrap; }
+.sidebar-connection > span.is-secondary { color: var(--dim); }
 
 .task-nav { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 3px; }
 .nav-label { margin: 0 9px 7px; color: var(--dim); font-size: 9px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }
@@ -439,7 +447,7 @@ body.modal-open { overflow: hidden; }
 
 @media (max-width: 760px) {
   .app-sidebar { position: static; width: 100%; height: auto; border-bottom: 1px solid var(--line); padding: 10px 14px; box-shadow: none; }
-  .sidebar-brand, .device-presence, .nav-label, .sidebar-footer > p { display: none; }
+  .sidebar-brand, .sidebar-device-stack, .nav-label, .sidebar-footer > p { display: none; }
   .task-nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); order: 2; }
   .tab { min-height: 48px; justify-content: center; gap: 6px; padding: 5px; }
   .tab > span { display: block; }

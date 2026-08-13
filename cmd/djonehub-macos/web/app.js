@@ -226,6 +226,24 @@ function setHeaderDeviceState(connected, label = "设备在线") {
   indicator.querySelector("span").textContent = label;
 }
 
+async function loadSidebarConnection() {
+  const panel = $("#sidebar-connection");
+  try {
+    const connection = await api("/api/network/local");
+    if (!connection?.interface) {
+      panel.hidden = true;
+      return;
+    }
+    $("#sidebar-connection-detail").textContent = [connection.interface, connection.ipv4].filter(Boolean).join(" · ");
+    const state = $("#sidebar-connection-state");
+    state.textContent = connection.is_default ? "默认出口" : "已连接";
+    state.classList.toggle("is-secondary", !connection.is_default);
+    panel.hidden = false;
+  } catch (_) {
+    panel.hidden = true;
+  }
+}
+
 function signalTone(dbm) {
   const value = Number(dbm);
   if (!Number.isFinite(value) || value === 0) return "muted";
@@ -1136,7 +1154,7 @@ $("#at-form").addEventListener("submit", async (event) => {
 });
 
 $("#refresh").addEventListener("click", async () => {
-  await Promise.all([loadStatus(), loadSMS()]);
+  await Promise.all([loadStatus(), loadSMS(), loadSidebarConnection()]);
   notice("状态已刷新");
 });
 $("#refresh-sms").addEventListener("click", async () => {
@@ -1197,6 +1215,8 @@ $("#reboot-module").addEventListener("click", rebootModule);
 
 loadStatus();
 loadSMS();
+loadSidebarConnection();
 setNetworkTrafficPolling(true);
 setInterval(loadStatus, 10000);
 setInterval(loadSMS, 5000);
+setInterval(loadSidebarConnection, 10000);
