@@ -13,6 +13,8 @@ BUILD_ROOT="${TMPDIR:-/tmp}/djoneactivator-build-arm64"
 STAGE_DIR="${BUILD_ROOT}/stage"
 APP_DIR="${STAGE_DIR}/${APP_NAME}.app"
 VERIFY_DIR="${BUILD_ROOT}/verify"
+ICON_SOURCE="${ROOT_DIR}/assets/AppIcon-1024-glass-logo.png"
+ICONSET_DIR="${BUILD_ROOT}/AppIcon.iconset"
 LIBUSB_ARCHIVE="${BUILD_ROOT}/libusb-${LIBUSB_VERSION}.tar.bz2"
 LIBUSB_SOURCE="${BUILD_ROOT}/libusb-source"
 LIBUSB_OBJECTS="${BUILD_ROOT}/libusb-objects"
@@ -28,6 +30,16 @@ for tool in go curl pkg-config clang codesign; do
     exit 1
   }
 done
+for tool in sips iconutil; do
+  command -v "${tool}" >/dev/null 2>&1 || {
+    echo "Missing macOS icon tool: ${tool}" >&2
+    exit 1
+  }
+done
+if [ ! -f "${ICON_SOURCE}" ]; then
+  echo "Missing icon source: ${ICON_SOURCE}" >&2
+  exit 1
+fi
 
 mkdir -p "${BUILD_ROOT}" "${DIST_DIR}"
 if [ ! -f "${LIBUSB_ARCHIVE}" ]; then
@@ -39,9 +51,10 @@ if [ "${ACTUAL_SHA256}" != "${LIBUSB_SHA256}" ]; then
   exit 1
 fi
 
-rm -rf "${LIBUSB_SOURCE}" "${LIBUSB_OBJECTS}" "${LIBUSB_PREFIX}" "${STAGE_DIR}" "${VERIFY_DIR}" "${DIST_DIR}/${APP_NAME}.app"
+rm -rf "${LIBUSB_SOURCE}" "${LIBUSB_OBJECTS}" "${LIBUSB_PREFIX}" "${STAGE_DIR}" "${VERIFY_DIR}" "${ICONSET_DIR}" "${DIST_DIR}/${APP_NAME}.app"
 mkdir -p "${LIBUSB_SOURCE}" "${LIBUSB_OBJECTS}" "${LIBUSB_PREFIX}/lib" "${LIBUSB_PREFIX}/include/libusb-1.0"
 mkdir -p "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Frameworks" "${APP_DIR}/Contents/Resources"
+mkdir -p "${ICONSET_DIR}"
 tar -xjf "${LIBUSB_ARCHIVE}" -C "${LIBUSB_SOURCE}" --strip-components=1
 
 (
@@ -91,6 +104,19 @@ cp "${ROOT_DIR}/README.md" "${APP_DIR}/Contents/Resources/README.md"
 cp "${ROOT_DIR}/LICENSE" "${APP_DIR}/Contents/Resources/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${APP_DIR}/Contents/Resources/THIRD_PARTY_NOTICES.md"
 cp "${LIBUSB_SOURCE}/COPYING" "${APP_DIR}/Contents/Resources/libusb-COPYING"
+
+sips -z 16 16 "${ICON_SOURCE}" --out "${ICONSET_DIR}/icon_16x16.png" >/dev/null
+sips -z 32 32 "${ICON_SOURCE}" --out "${ICONSET_DIR}/icon_16x16@2x.png" >/dev/null
+sips -z 32 32 "${ICON_SOURCE}" --out "${ICONSET_DIR}/icon_32x32.png" >/dev/null
+sips -z 64 64 "${ICON_SOURCE}" --out "${ICONSET_DIR}/icon_32x32@2x.png" >/dev/null
+sips -z 128 128 "${ICON_SOURCE}" --out "${ICONSET_DIR}/icon_128x128.png" >/dev/null
+sips -z 256 256 "${ICON_SOURCE}" --out "${ICONSET_DIR}/icon_128x128@2x.png" >/dev/null
+sips -z 256 256 "${ICON_SOURCE}" --out "${ICONSET_DIR}/icon_256x256.png" >/dev/null
+sips -z 512 512 "${ICON_SOURCE}" --out "${ICONSET_DIR}/icon_256x256@2x.png" >/dev/null
+sips -z 512 512 "${ICON_SOURCE}" --out "${ICONSET_DIR}/icon_512x512.png" >/dev/null
+sips -z 1024 1024 "${ICON_SOURCE}" --out "${ICONSET_DIR}/icon_512x512@2x.png" >/dev/null
+iconutil -c icns "${ICONSET_DIR}" -o "${APP_DIR}/Contents/Resources/AppIcon.icns"
+
 chmod 755 "${APP_DIR}/Contents/MacOS/${APP_NAME}" "${APP_DIR}/Contents/Frameworks/libusb-1.0.0.dylib"
 xattr -cr "${APP_DIR}"
 codesign --force --sign - "${APP_DIR}/Contents/Frameworks/libusb-1.0.0.dylib"

@@ -8,6 +8,8 @@
   <string>DJOneActivator</string>
   <key>CFBundleIdentifier</key>
   <string>com.wongloki.djoneactivator</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>

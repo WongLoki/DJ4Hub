@@ -2,6 +2,8 @@
 
 DJOneActivator 是大疆第一代 4G 模块（USB `2ca3:4006`）的 macOS 一次性上网激活工具。
 
+![DJOneActivator 图标](assets/AppIcon-1024-glass-logo.png)
+
 双击 `DJOneActivator.app` 后，它会：
 
 1. 识别大疆/百旺 `EG25G-QDC507` 模块；
