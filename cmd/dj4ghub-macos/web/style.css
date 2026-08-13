@@ -115,14 +115,8 @@ svg { display: block; }
 .sidebar-brand > div:last-child { display: grid; gap: 1px; }
 .sidebar-brand strong { color: var(--text); font-size: 14px; font-weight: 650; letter-spacing: -.015em; }
 .sidebar-brand small { color: var(--dim); font-size: 10px; letter-spacing: .035em; }
-.brand-glyph { display: flex; width: 28px; height: 28px; align-items: end; gap: 2px; border-radius: 8px; padding: 6px; background: var(--text); }
-.brand-glyph > span { display: block; width: 3px; border-radius: 2px 2px 1px 1px; background: var(--canvas); }
-.brand-glyph > span:nth-child(1) { height: 5px; }
-.brand-glyph > span:nth-child(2) { height: 9px; }
-.brand-glyph > span:nth-child(3) { height: 13px; }
-.brand-glyph > span:nth-child(4) { height: 8px; opacity: .4; }
-.brand-glyph.mini { width: 22px; height: 22px; padding: 5px; }
-.brand-glyph.mini > span { width: 2px; }
+.brand-icon { display: block; width: 30px; height: 30px; flex: none; border-radius: 9px; object-fit: cover; box-shadow: 0 5px 14px rgba(0, 0, 0, .16); }
+.brand-icon.mini { width: 23px; height: 23px; border-radius: 7px; box-shadow: 0 3px 9px rgba(0, 0, 0, .14); }
 
 .sidebar-device-stack { display: grid; gap: 6px; margin-bottom: 20px; }
 .device-presence {

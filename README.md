@@ -1,11 +1,15 @@
+<p align="center">
+  <img src="docs/images/dj-4g-hub-icon.png" width="128" alt="DJ 4G Hub icon">
+</p>
+
 # DJ 4G Hub
 
-DJ 4G Hub 是一个面向**大疆第一代 4G 模块**的本地优先 macOS 控制台。它通过模块已有的 USB 接口，在 Mac 上提供设备状态、短信、eSIM Profile、蜂窝上网、网络活动和 AT 调试能力，不修改模块固件。
+DJ 4G Hub 是一个本地优先的 macOS 设备控制台，支持兼容的 **DJI 4G 模块**。它通过模块已有的 USB 接口，在 Mac 上提供设备状态、短信、eSIM Profile、蜂窝上网、网络活动和 AT 调试能力，不修改模块固件。
 
 管理服务和网页均运行在本机，默认只监听 `127.0.0.1:7575`。SIM、短信、EID、ICCID 和网络连接信息不会由项目主动上传到远程服务器。
 
 > [!IMPORTANT]
-> DJ 4G Hub 是非官方第三方项目，与 DJI、Quectel、运营商或 eSIM 卡片厂商不存在隶属、授权或合作关系。
+> DJ 4G Hub 是独立开发的非官方开源项目，未获得 DJI 的授权、赞助或认可，与 DJI、Quectel、运营商或 eSIM 卡片厂商不存在隶属或合作关系。DJI 及相关产品名称是其各自权利人的商标，仅用于说明兼容性。
 
 ## 为什么是一个新项目
 
@@ -15,12 +19,12 @@ DJ 4G Hub 最初从 [ZenGeekLabs/DJOneHub](https://github.com/ZenGeekLabs/DJOneH
 
 ## 相关项目
 
-DJI 4G Connect 是独立开发、独立发布的 MIT 项目。本仓库只通过 Git submodule 固定一个经过验证的版本，方便一起检出和联调，不将其源码、提交、Issue、Actions、Release 或许可证合并进 DJ 4G Hub。
+4G Connect 是独立开发、独立发布的 MIT 项目。本仓库只通过 Git submodule 固定一个经过验证的版本，方便一起检出和联调，不将其源码、提交、Issue、Actions、Release 或许可证合并进 DJ 4G Hub。
 
 | 项目 | 位置 | 用途 | 维护方式 |
 | --- | --- | --- | --- |
 | DJ 4G Hub | 当前仓库 | 完整设备控制台：短信、eSIM、网络、流量和 AT 调试 | 当前仓库独立维护 |
-| [DJI 4G Connect](https://github.com/WongLoki/DJI-4G-Connect) | `apps/dji-4g-connect` submodule | 双击即用的一次性 USB 网卡激活 App | 独立仓库、MIT License |
+| [4G Connect](https://github.com/WongLoki/4G-Connect) | `apps/4g-connect` submodule | 双击即用的一次性 USB 网卡激活 App | 独立仓库、MIT License |
 
 克隆时需要同时取回子仓库：
 
@@ -50,7 +54,7 @@ git submodule update --init --recursive
 
 | 功能 | 状态 | 说明 |
 | --- | --- | --- |
-| 设备自动识别 | 可用 | 识别第一代 DJI 4G 模块，处理拔出与重新连接 |
+| 设备自动识别 | 可用 | 识别受支持的 DJI 4G 模块，处理拔出与重新连接 |
 | 实时状态 | 可用 | 运营商、信号、网络制式、SIM、工作模式和流量 |
 | 短信 | 可用 | 收发、轮询、验证码、长短信与模块存储清理 |
 | eSIM / 卡片 | 可用 | 管理插在模块卡槽中的兼容实体 eUICC 卡片 |
@@ -63,7 +67,7 @@ git submodule update --init --recursive
 
 ## 硬件与系统
 
-- 大疆第一代 4G 模块，常见 USB 标识为 `2ca3:4006`
+- 受支持的 DJI 4G 模块，常见 USB 标识为 `2ca3:4006`
 - 可用的实体 SIM，或兼容的实体 eUICC/eSIM 卡片
 - 支持数据传输的 USB-C 线缆
 - Apple Silicon Mac
@@ -83,7 +87,7 @@ git submodule update --init --recursive
 
 ## 下载与安装
 
-从项目 [Releases](https://github.com/WongLoki/dj-4g-hub/releases) 下载名称包含 `DJ-4G-Hub-macOS-arm64` 的 ZIP，并按需使用同名 `.sha256` 校验文件。只需要一次性激活工具时，请前往 [DJI 4G Connect Releases](https://github.com/WongLoki/DJI-4G-Connect/releases)。
+从项目 [Releases](https://github.com/WongLoki/dj-4g-hub/releases) 下载名称包含 `DJ-4G-Hub-macOS-arm64` 的 ZIP，并按需使用同名 `.sha256` 校验文件。只需要一次性激活工具时，请前往 [4G Connect Releases](https://github.com/WongLoki/4G-Connect/releases)。
 
 ```sh
 shasum -a 256 DJ-4G-Hub-*.zip
@@ -144,7 +148,7 @@ dj4ghub open           重新打开管理页面
 “联网活动”会尝试还原真实链路：
 
 ```text
-应用 → 系统隧道（可选）→ DJI USB 网卡 → 蜂窝网络
+应用 → 系统隧道（可选）→ 兼容模块 USB 网卡 → 蜂窝网络
 ```
 
 页面可以显示应用名、目标域名或 IP、端口、协议和累计上下行字节。域名依赖 macOS 本地解析缓存；HTTPS 页面路径和通信内容不可见。
@@ -190,14 +194,14 @@ go test ./...
 
 ```text
 cmd/dj4ghub-macos/       macOS 服务、USB AT 和内嵌网页
-apps/dji-4g-connect/     独立 DJI 4G Connect 仓库的 submodule 引用
+apps/4g-connect/         独立 4G Connect 仓库的 submodule 引用
 internal/                设备后端、短信、eSIM 与配置能力
 pkg/                     MBIM、短信编码和日志组件
 packaging/               安装器、启动器与发行说明
 scripts/                 本地构建和 Apple Silicon 打包脚本
 ```
 
-DJ 4G Hub 在本仓库运行测试与发布流程，推送 `v*` 标签时构建 Release。DJI 4G Connect 在自己的仓库中运行独立 Actions 和发布流程。
+DJ 4G Hub 在本仓库运行测试与发布流程，推送 `v*` 标签时构建 Release。4G Connect 在自己的仓库中运行独立 Actions 和发布流程。
 
 ## 移动设备路线图
 
@@ -228,7 +232,7 @@ DJ 4G Hub 在本仓库运行测试与发布流程，推送 `v*` 标签时构建 
 
 DJ 4G Hub 主项目包含从 VoHive 演进而来的代码，因此根目录代码继续遵循 [PolyForm Noncommercial License 1.0.0](LICENSE)，不是 MIT、Apache-2.0 等宽松许可证。源码公开不代表可以忽略非商业限制。
 
-DJI 4G Connect 是另一个独立仓库，使用其自身的 [MIT License](https://github.com/WongLoki/DJI-4G-Connect/blob/main/LICENSE)。本仓库中的 submodule 只是对外部提交的引用，该 MIT 授权不改变 DJ 4G Hub 的许可证，DJ 4G Hub 的条款也不覆盖 Connect 仓库。
+4G Connect 是另一个独立仓库，使用其自身的 [MIT License](https://github.com/WongLoki/4G-Connect/blob/main/LICENSE)。本仓库中的 submodule 只是对外部提交的引用，该 MIT 授权不改变 DJ 4G Hub 的许可证，DJ 4G Hub 的条款也不覆盖 Connect 仓库。
 
 必须保留的上游声明：
 

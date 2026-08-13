@@ -1,6 +1,6 @@
 # DJ 4G Hub for macOS
 
-This branch adds a native macOS service for the DJI Cellular Dongle / Quectel
+This branch adds a native macOS service for supported DJI 4G modules / Quectel
 EG25-G. It does not require UTM for AT-mode management.
 
 ## Current scope

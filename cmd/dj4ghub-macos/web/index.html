@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <title>DJ 4G Hub · 设备控制台</title>
+  <link rel="icon" type="image/png" href="/app-icon.png">
+  <link rel="apple-touch-icon" href="/app-icon.png">
   <script>
     try {
       const theme = localStorage.getItem("dj4ghub-theme") || localStorage.getItem("djonehub-theme") || localStorage.getItem("vohive-theme");
@@ -17,9 +19,7 @@
   <div class="app-shell">
     <aside class="app-sidebar">
       <div class="sidebar-brand">
-        <div class="brand-glyph" aria-hidden="true">
-          <span></span><span></span><span></span><span></span>
-        </div>
+        <img class="brand-icon" src="/app-icon.png" alt="">
         <div>
           <strong>DJ 4G Hub</strong>
           <small>macOS Console</small>
@@ -31,7 +31,7 @@
           <span class="presence-light" aria-hidden="true"></span>
           <div>
             <small>本地设备</small>
-            <strong>DJI 4G Module</strong>
+            <strong>兼容 4G 模块</strong>
           </div>
           <span class="presence-state">USB</span>
         </div>
@@ -88,10 +88,10 @@
     <main class="app-main">
       <header class="app-header">
         <div class="page-heading">
-          <div class="mobile-brand"><span class="brand-glyph mini" aria-hidden="true"><span></span><span></span><span></span><span></span></span>DJ 4G Hub</div>
+          <div class="mobile-brand"><img class="brand-icon mini" src="/app-icon.png" alt="">DJ 4G Hub</div>
           <span class="page-kicker">DEVICE WORKSPACE</span>
           <h1>设备控制台</h1>
-          <p id="device-summary">正在连接大疆 4G 模块</p>
+          <p id="device-summary">正在连接兼容的 4G 模块</p>
         </div>
         <div class="header-actions">
           <span id="header-device-state" class="header-device-state" role="status"><i aria-hidden="true"></i><span>正在连接</span></span>

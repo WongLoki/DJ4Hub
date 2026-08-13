@@ -28,7 +28,7 @@ func activateDJINetwork(out io.Writer) error {
 	}
 	usbDevice := discoverDJIUSBDevice()
 	if usbDevice == nil {
-		return errors.New("未检测到大疆一代 4G 模块（USB 2ca3:4006）")
+		return errors.New("未检测到受支持的 DJI 4G 模块（USB 2ca3:4006）")
 	}
 	fmt.Fprintf(out, "已检测到模块：%s %s（%s:%s）\n",
 		usbDevice.Vendor, usbDevice.Product, usbDevice.VendorID, usbDevice.ProductID)

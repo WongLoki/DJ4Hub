@@ -1,6 +1,6 @@
 # DJ 4G Hub 源码结构
 
-仓库按 `cmd/dj4ghub-macos` 的真实 Go 依赖图保留 DJ 4G Hub 必要源码。`apps/dji-4g-connect` 是指向独立 DJI 4G Connect 仓库的 Git submodule，不属于本仓库源码。
+仓库按 `cmd/dj4ghub-macos` 的真实 Go 依赖图保留 DJ 4G Hub 必要源码。`apps/4g-connect` 是指向独立 4G Connect 仓库的 Git submodule，不属于本仓库源码。
 
 ## 目录树
 
@@ -10,7 +10,7 @@ DJ-4G-Hub-source-minimal/
 │   └── dj4ghub-macos/       # macOS 主程序、USB AT、短信、网络与内嵌网页
 │       └── web/              # 当前实际显示的原生管理页面
 ├── apps/
-│   └── dji-4g-connect/       # 独立 DJI 4G Connect 仓库的 submodule
+│   └── 4g-connect/           # 独立 4G Connect 仓库的 submodule
 ├── internal/
 │   ├── apduarbiter/          # SIM/eUICC APDU 通道并发协调
 │   ├── backend/              # AT、MBIM、QMI 后端的统一能力接口
@@ -42,7 +42,7 @@ DJ-4G-Hub-source-minimal/
 ## 关键入口
 
 - `cmd/dj4ghub-macos/main.go`：HTTP 服务、设备状态、短信、eSIM、网络和流量 API。
-- `cmd/dj4ghub-macos/usbat_darwin.go`：macOS 上通过 libusb 接管大疆模块 USB AT 接口。
+- `cmd/dj4ghub-macos/usbat_darwin.go`：macOS 上通过 libusb 接管兼容模块的 USB AT 接口。
 - `cmd/dj4ghub-macos/usbat_esim_channel.go`：经 AT/APDU 访问实体 eUICC 卡片。
 - `cmd/dj4ghub-macos/web/`：由 `go:embed` 编译进二进制的网页界面。
 

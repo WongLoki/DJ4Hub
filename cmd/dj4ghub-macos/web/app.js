@@ -158,7 +158,7 @@ function renderHardwareDetails(status) {
   }
 
   const title = document.createElement("strong");
-  title.textContent = device ? "已检测到大疆 USB 设备" : "未检测到可用硬件";
+  title.textContent = device ? "已检测到兼容 USB 设备" : "未检测到可用硬件";
 
   const detail = document.createElement("p");
   if (device) {
@@ -166,7 +166,7 @@ function renderHardwareDetails(status) {
       ? `${device.interfaces.length} 个 USB interface`
       : "interface 未知";
     detail.textContent = [
-      `${device.vendor || "DJI"} ${device.product || ""}`.trim(),
+      `${device.vendor || "兼容设备"} ${device.product || ""}`.trim(),
       `${device.vendor_id}:${device.product_id}`,
       device.mode,
       interfaceText,
@@ -389,7 +389,7 @@ async function copyIdentifier(value, label) {
 async function editProfileNote(profile, note) {
   const values = await showModal({
     title: "编辑模块资料",
-    message: "这些资料保存在大疆模块中，并按 ICCID 与当前 Profile 关联。",
+    message: "这些资料保存在兼容模块中，并按 ICCID 与当前 Profile 关联。",
     confirmLabel: "保存",
     fields: [
       { name: "label", label: "模块内名称", value: note.label || "", placeholder: "可选" },
