@@ -316,6 +316,24 @@ input:focus { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); 
 .diagnostic-card strong { display: block; margin-top: 8px; color: var(--text); font-size: 14px; font-weight: 550; line-height: 1.25; overflow-wrap: anywhere; }
 .diagnostic-card small { display: block; margin-top: 7px; color: var(--dim); font-size: 9px; line-height: 1.45; }
 
+.network-summary { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+.network-path { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 17px 0; }
+.network-path-step { position: relative; min-width: 0; min-height: 65px; border-right: 1px solid var(--hairline); padding: 0 22px 0 36px; }
+.network-path-step:last-child { border-right: 0; }
+.network-path-step::before { position: absolute; top: 3px; left: 18px; width: 6px; height: 6px; border-radius: 50%; background: var(--dim); content: ""; }
+.network-path-step.is-good::before { background: var(--positive); box-shadow: 0 0 0 3px color-mix(in srgb, var(--positive) 10%, transparent); }
+.network-path-step.is-warn::before { background: var(--warning); box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning) 10%, transparent); }
+.network-path-step.is-bad::before { background: var(--negative); box-shadow: 0 0 0 3px color-mix(in srgb, var(--negative) 10%, transparent); }
+.network-path-step > span { display: block; color: var(--muted); font-size: 9px; }
+.network-path-step > strong { display: block; margin-top: 8px; overflow: hidden; color: var(--text); font-size: 14px; font-weight: 550; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.network-path-step > small { display: block; margin-top: 6px; overflow: hidden; color: var(--dim); font-size: 8px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.network-facts { display: grid; grid-template-columns: .5fr 1fr 1.5fr; margin: 0; border-top: 1px solid var(--hairline); background: var(--surface-soft); }
+.network-facts > div { min-width: 0; border-right: 1px solid var(--hairline); padding: 10px 16px; }
+.network-facts > div:last-child { border-right: 0; }
+.network-facts dt { color: var(--dim); font-size: 8px; text-transform: uppercase; }
+.network-facts dd { margin: 4px 0 0; overflow: hidden; color: var(--text-default); font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.network-summary-empty { display: grid; min-height: 96px; place-items: center; color: var(--dim); font-size: 10px; }
+
 .fold-panel, .profile-panel { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
 .fold-panel { margin-top: 10px; }
 .fold-panel > summary, .profile-panel > summary { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px; cursor: pointer; list-style: none; }
@@ -443,6 +461,14 @@ body.modal-open { overflow: hidden; }
   .item { grid-template-columns: 1fr; gap: 6px; }
   .sms-actions, .profile-actions { justify-content: flex-start; }
   .diagnostic-grid, .fold-panel > #esim-runtime { grid-template-columns: 1fr; }
+  .network-path { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 13px 0; }
+  .network-path-step { min-height: 64px; border-right: 1px solid var(--hairline); border-bottom: 0; padding: 0 8px 0 24px; }
+  .network-path-step:last-child { border-right: 0; }
+  .network-path-step::before { top: 3px; left: 10px; }
+  .network-path-step > strong { font-size: 12px; }
+  .network-facts { grid-template-columns: .5fr 1fr 1.5fr; }
+  .network-facts > div { border-right: 1px solid var(--hairline); border-bottom: 0; padding-right: 10px; padding-left: 10px; }
+  .network-facts > div:last-child { border-right: 0; }
   .esim-download-grid { grid-template-columns: 1fr; }
   .esim-download-grid button { grid-column: auto; justify-self: stretch; }
   .phonebook-result { grid-template-columns: 1fr; }

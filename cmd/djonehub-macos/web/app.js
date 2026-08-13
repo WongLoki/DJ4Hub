@@ -535,6 +535,29 @@ function diagnosticCard(label, value, detail = "") {
   return card;
 }
 
+function networkPathStep(label, value, detail = "", tone = "") {
+  const step = document.createElement("div");
+  step.className = `network-path-step ${tone}`.trim();
+  const labelNode = document.createElement("span");
+  labelNode.textContent = label;
+  const valueNode = document.createElement("strong");
+  valueNode.textContent = value || "--";
+  const detailNode = document.createElement("small");
+  detailNode.textContent = detail;
+  step.append(labelNode, valueNode, detailNode);
+  return step;
+}
+
+function networkFact(label, value) {
+  const item = document.createElement("div");
+  const term = document.createElement("dt");
+  term.textContent = label;
+  const description = document.createElement("dd");
+  description.textContent = value || "--";
+  item.append(term, description);
+  return item;
+}
+
 function renderNetworkCheck(label, result) {
   const list = $("#network-checks");
   list.className = "list";
@@ -581,18 +604,23 @@ async function loadNetwork() {
       ? `${diag.usb_device.vendor || ""} ${diag.usb_device.product || ""} (${diag.usb_device.vendor_id}:${diag.usb_device.product_id})`
       : "未检测到";
     const route = diag.default_route || {};
-    const routeText = route.interface
-      ? `${route.interface}${route.gateway ? ` -> ${route.gateway}` : ""}`
-      : "未知";
-    grid.replaceChildren(
-      diagnosticCard("USB 网卡", diag.usb_network_present ? "已识别" : "未识别", "macOS 是否出现可用 USB 网络接口"),
-      diagnosticCard("默认出口", routeText, "当前 macOS 实际优先使用的网卡和网关"),
-      diagnosticCard("usbnet", diag.usbnet_mode || "未知", "模块当前 USB 网络模式"),
-      diagnosticCard("蜂窝数据", active ? `已激活 ${active}` : "未激活", "PDP context 激活状态"),
-      diagnosticCard("蜂窝 IP", addresses || "无", "模块侧拿到的数据网络地址"),
-      diagnosticCard("APN", apns || "无", "当前可见 PDP 配置"),
-      diagnosticCard("USB 枚举", usb, diag.usb_device?.mode || ""),
+    const routeText = route.interface || "未知";
+    const path = document.createElement("div");
+    path.className = "network-path";
+    path.append(
+      networkPathStep("蜂窝数据", active ? `已激活 ${active}` : "未激活", addresses || "等待分配蜂窝 IP", active ? "is-good" : "is-warn"),
+      networkPathStep("USB 网卡", diag.usb_network_present ? "已识别" : "未识别", "macOS 网络接口", diag.usb_network_present ? "is-good" : "is-bad"),
+      networkPathStep("默认出口", routeText, route.gateway ? `网关 ${route.gateway}` : "macOS 当前默认路由", route.interface ? "is-good" : "is-warn"),
     );
+    const facts = document.createElement("dl");
+    facts.className = "network-facts";
+    facts.append(
+      networkFact("USBNET", diag.usbnet_mode ?? "未知"),
+      networkFact("APN", apns || "无"),
+      networkFact("USB 设备", usb),
+    );
+    grid.className = "network-summary";
+    grid.replaceChildren(path, facts);
 
     const errorText = diag.errors ? ` · 错误：${Object.values(diag.errors).join("；")}` : "";
     $("#network-status").textContent = diag.usb_network_present
@@ -620,7 +648,8 @@ async function loadNetwork() {
     }));
   } catch (error) {
     $("#network-status").textContent = `读取网络诊断失败：${error.message}`;
-    grid.replaceChildren();
+    grid.className = "network-summary network-summary-empty";
+    grid.textContent = "网络摘要暂不可用";
     ifaceList.className = "list empty";
     ifaceList.textContent = "读取失败";
     notice(error.message);
