@@ -974,8 +974,13 @@ async function loadESIM() {
 
 document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab, .view").forEach((el) => el.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach((item) => {
+      item.classList.remove("active");
+      item.removeAttribute("aria-current");
+    });
+    document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
     tab.classList.add("active");
+    tab.setAttribute("aria-current", "page");
     $(`#${tab.dataset.view}`).classList.add("active");
     if (tab.dataset.view === "esim") loadESIM();
     else setESIMHealthPolling(false);

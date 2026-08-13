@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DJOneHub for macOS</title>
+  <meta name="color-scheme" content="light dark">
+  <title>DJOneHub · 设备控制台</title>
   <script>
     try {
       const theme = localStorage.getItem("djonehub-theme") || localStorage.getItem("vohive-theme");
@@ -13,148 +14,223 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <header class="app-header">
-    <div class="brand-block">
-      <div class="brand-line"><span class="brand-mark" aria-hidden="true"></span><span class="eyebrow">DJI 4G MODULE</span></div>
-      <h1>DJOneHub <span>macOS</span></h1>
-      <p id="device-summary">正在连接大疆 4G 模块</p>
-    </div>
-    <div class="header-actions">
-      <div class="theme-switch" role="group" aria-label="网页外观">
-        <button class="theme-option" type="button" data-theme-option="light" aria-pressed="false">浅色</button>
-        <button class="theme-option" type="button" data-theme-option="dark" aria-pressed="false">深色</button>
-        <button class="theme-option" type="button" data-theme-option="auto" aria-pressed="true">自动</button>
-      </div>
-      <button id="workmode-sms" class="secondary compact" type="button">短信模式</button>
-      <button id="workmode-network" class="secondary compact" type="button">上网模式</button>
-      <button id="refresh" class="compact icon-button" title="刷新状态" aria-label="刷新状态">↻</button>
-    </div>
-  </header>
-
-  <main class="app-main">
-    <section class="overview" aria-label="设备状态">
-      <div class="overview-heading"><span>模块概览</span><small>本地 USB 控制</small></div>
-      <div class="status-grid">
-      <div><span>运营商</span><strong id="operator">--</strong></div>
-      <div><span>信号</span><strong id="signal">--</strong></div>
-      <div><span>网络</span><strong id="network-mode">--</strong></div>
-      <div><span>SIM</span><strong id="sim">--</strong></div>
-      <div><span>工作模式</span><strong id="work-mode">--</strong></div>
-      <div><span>当前下载</span><strong id="traffic-rx-rate">--</strong></div>
-      <div><span>当前上传</span><strong id="traffic-tx-rate">--</strong></div>
-      <div><span>本次下载流量</span><strong id="traffic-session-rx">--</strong></div>
-      <div><span>本次上传流量</span><strong id="traffic-session-tx">--</strong></div>
-      <div><span>本次总流量</span><strong id="traffic-session-total">--</strong></div>
-      </div>
-    </section>
-    <section id="hardware-details" class="hardware-details" hidden></section>
-    <p id="workmode-status" class="inline-status" hidden></p>
-
-    <nav class="task-nav" aria-label="功能导航">
-      <button class="tab active" data-view="sms"><span>短信</span><small>收件箱</small></button>
-      <button class="tab" data-view="esim"><span>eSIM/卡片</span><small>Profile</small></button>
-      <button class="tab" data-view="network"><span>网络</span><small>4G USB</small></button>
-      <button class="tab" data-view="at"><span>AT 调试</span><small>诊断</small></button>
-    </nav>
-
-    <section id="sms" class="view active">
-      <div class="view-intro"><div><span class="section-kicker">SIM MESSAGES</span><h2>短信收件箱</h2></div><p>自动轮询当前 SIM 与模块短信存储。</p></div>
-      <form id="send-form" class="toolbar">
-        <input id="phone" type="tel" placeholder="接收号码" autocomplete="tel" required>
-        <input id="message" type="text" placeholder="短信内容" maxlength="1000" required>
-        <button type="submit">发送</button>
-      </form>
-      <div class="section-heading">
-        <h2>收件箱</h2>
-        <div class="heading-actions">
-          <button id="clear-module-sms" class="secondary danger" type="button">清空模块旧短信</button>
-          <button id="refresh-sms" class="secondary" type="button">读取短信</button>
+  <div class="app-shell">
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-glyph" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div>
+          <strong>DJOneHub</strong>
+          <small>macOS Console</small>
         </div>
       </div>
-      <p id="sms-status" class="inline-status">尚未读取短信</p>
-      <div id="sms-list" class="list empty">暂无短信</div>
-    </section>
 
-    <section id="esim" class="view">
-      <div class="view-intro"><div><span class="section-kicker">EUICC MANAGER</span><h2>eSIM / 卡片</h2></div><p>管理卡内 Profile，并核对模块实际接管状态。</p></div>
-      <div class="section-heading">
-        <h2>eSIM Profile</h2>
-        <button id="refresh-esim" class="secondary">刷新</button>
+      <div class="device-presence">
+        <span class="presence-light" aria-hidden="true"></span>
+        <div>
+          <small>本地设备</small>
+          <strong>DJI 4G Module</strong>
+        </div>
+        <span class="presence-state">USB</span>
       </div>
-      <p id="esim-status" class="inline-status">仅在 SIM 卡槽中插入 eUICC/eSIM 卡片时使用；普通实体 SIM 可以忽略。</p>
-      <details id="esim-download-section" class="fold-panel esim-download">
-        <summary><span>下载新 Profile</span><small>SM-DP+ 激活信息</small></summary>
-        <form id="esim-download-form" class="esim-download-grid">
-          <input id="esim-smdp" placeholder="SM-DP+ 地址" required>
-          <input id="esim-matching-id" placeholder="Matching ID（可选）">
-          <input id="esim-confirmation-code" placeholder="确认码（可选）">
-          <input id="esim-imei" inputmode="numeric" maxlength="15" placeholder="模块 IMEI（必填）" required>
-          <input id="esim-aid" placeholder="目标 eUICC AID（可选）">
-          <button type="submit">开始下载</button>
-        </form>
-        <p id="esim-download-status" class="inline-status">填写运营商提供的激活信息后才会执行下载。</p>
-      </details>
 
-      <details id="esim-profile-panel" class="profile-panel" open>
-        <summary class="profile-panel-heading"><span class="profile-panel-title"><span class="section-kicker">INSTALLED PROFILES</span><strong>已安装的 Profile</strong></span><small>启用、改名或删除卡内 Profile。</small></summary>
-        <div class="profile-panel-content">
-        <details class="fold-panel">
-          <summary><span>卡片概览</span><small>卡类型、固件、EID</small></summary>
-          <div id="esim-chip" class="diagnostic-grid" hidden></div>
+      <nav class="task-nav" aria-label="功能导航">
+        <p class="nav-label">模块管理</p>
+        <button class="tab active" data-view="sms" type="button" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.8A2.8 2.8 0 0 1 7.8 4h8.4A2.8 2.8 0 0 1 19 6.8v5.4a2.8 2.8 0 0 1-2.8 2.8H11l-4.5 3v-3.1A2.8 2.8 0 0 1 5 12.2Z"/><path d="M8.5 8.5h7M8.5 11.5h4.7"/></svg>
+          <span><strong>短信</strong><small>收件箱与发送</small></span>
+        </button>
+        <button class="tab" data-view="esim" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h6.5L19 7.5V21H8a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z"/><path d="M10 8.5v7M14 8.5v7M8.5 11h7M8.5 14h7"/></svg>
+          <span><strong>eSIM / 卡片</strong><small>Profile 管理</small></span>
+        </button>
+        <button class="tab" data-view="network" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 18.5h15M6.5 15l3.2-3.2 2.6 2.2 5.2-6"/><path d="M14.5 8h3v3"/></svg>
+          <span><strong>网络</strong><small>4G USB 与路由</small></span>
+        </button>
+        <button class="tab" data-view="at" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="m7.5 9 2.5 2.5L7.5 14M12.5 14h4"/></svg>
+          <span><strong>AT 调试</strong><small>高级诊断</small></span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="theme-switch" role="group" aria-label="网页外观">
+          <button class="theme-option" type="button" data-theme-option="light" aria-pressed="false" title="浅色模式">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>
+            <span>浅色</span>
+          </button>
+          <button class="theme-option" type="button" data-theme-option="dark" aria-pressed="false" title="深色模式">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.2A8.2 8.2 0 0 1 8.8 4 8.2 8.2 0 1 0 20 15.2Z"/></svg>
+            <span>深色</span>
+          </button>
+          <button class="theme-option" type="button" data-theme-option="auto" aria-pressed="true" title="跟随系统">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M9 20h6M12 16.5V20"/></svg>
+            <span>自动</span>
+          </button>
+        </div>
+        <p>Local-first · USB control</p>
+      </div>
+    </aside>
+
+    <main class="app-main">
+      <header class="app-header">
+        <div class="page-heading">
+          <div class="mobile-brand"><span class="brand-glyph mini" aria-hidden="true"><span></span><span></span><span></span><span></span></span>DJOneHub</div>
+          <span class="page-kicker">DEVICE WORKSPACE</span>
+          <h1>设备控制台</h1>
+          <p id="device-summary">正在连接大疆 4G 模块</p>
+        </div>
+        <div class="header-actions">
+          <div class="mode-control" aria-label="模块工作模式">
+            <span>工作模式</span>
+            <button id="workmode-sms" class="secondary compact" type="button">短信</button>
+            <button id="workmode-network" class="secondary compact" type="button">上网</button>
+          </div>
+          <button id="refresh" class="compact icon-button" title="刷新状态" aria-label="刷新状态" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7v4h-4M5 17v-4h4"/><path d="M7 8a6.5 6.5 0 0 1 10.5-1L19 10M5 14l1.5 2A6.5 6.5 0 0 0 17 16"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <section class="overview" aria-label="设备状态">
+        <div class="overview-heading">
+          <div><span class="live-dot" aria-hidden="true"></span><strong>实时状态</strong></div>
+          <small>每 1 秒更新流量 · 每 10 秒同步设备</small>
+        </div>
+        <div class="status-grid">
+          <div class="status-primary"><span>运营商</span><strong id="operator">--</strong><small>蜂窝网络</small></div>
+          <div class="status-primary"><span>信号</span><strong id="signal">--</strong><small>接收强度</small></div>
+          <div class="status-primary"><span>网络</span><strong id="network-mode">--</strong><small>注册制式</small></div>
+          <div class="status-primary"><span>SIM</span><strong id="sim">--</strong><small>卡片状态</small></div>
+          <div class="status-primary"><span>工作模式</span><strong id="work-mode">--</strong><small>USBNET</small></div>
+          <div><span>实时下载</span><strong id="traffic-rx-rate">--</strong></div>
+          <div><span>实时上传</span><strong id="traffic-tx-rate">--</strong></div>
+          <div><span>本次下载</span><strong id="traffic-session-rx">--</strong></div>
+          <div><span>本次上传</span><strong id="traffic-session-tx">--</strong></div>
+          <div><span>会话总流量</span><strong id="traffic-session-total">--</strong></div>
+        </div>
+      </section>
+      <section id="hardware-details" class="hardware-details" hidden></section>
+      <p id="workmode-status" class="inline-status attention" hidden></p>
+
+      <section id="sms" class="view active">
+        <div class="view-intro">
+          <div><span class="section-kicker">MESSAGES</span><h2>短信</h2><p>读取 SIM 与模块存储，验证码会自动识别。</p></div>
+          <div class="view-meta"><span>自动轮询</span><strong>5s</strong></div>
+        </div>
+        <div class="surface-panel compose-panel">
+          <div class="panel-heading"><div><span class="panel-icon" aria-hidden="true">＋</span><strong>发送新短信</strong></div><small>支持长短信自动分片</small></div>
+          <form id="send-form" class="toolbar">
+            <label><span>接收号码</span><input id="phone" type="tel" placeholder="+86 138 0000 0000" autocomplete="tel" required></label>
+            <label><span>短信内容</span><input id="message" type="text" placeholder="输入短信内容" maxlength="1000" required></label>
+            <button type="submit">发送</button>
+          </form>
+        </div>
+        <div class="section-heading">
+          <div><h2>收件箱</h2><p id="sms-status" class="inline-status">尚未读取短信</p></div>
+          <div class="heading-actions">
+            <button id="clear-module-sms" class="secondary danger" type="button">清空模块旧短信</button>
+            <button id="refresh-sms" class="secondary" type="button">立即读取</button>
+          </div>
+        </div>
+        <div id="sms-list" class="list empty">暂无短信</div>
+      </section>
+
+      <section id="esim" class="view">
+        <div class="view-intro">
+          <div><span class="section-kicker">EUICC</span><h2>eSIM / 卡片</h2><p>管理卡内 Profile，核对模块实际接管状态。</p></div>
+          <button id="refresh-esim" class="secondary" type="button">刷新卡片</button>
+        </div>
+        <p id="esim-status" class="inline-status attention">仅在 SIM 卡槽中插入 eUICC/eSIM 卡片时使用；普通实体 SIM 可以忽略。</p>
+        <details id="esim-download-section" class="fold-panel esim-download">
+          <summary><span><span class="panel-icon" aria-hidden="true">↓</span><strong>下载新 Profile</strong></span><small>SM-DP+ 激活信息</small></summary>
+          <form id="esim-download-form" class="esim-download-grid">
+            <label><span>SM-DP+ 地址</span><input id="esim-smdp" placeholder="smdp.example.com" required></label>
+            <label><span>Matching ID</span><input id="esim-matching-id" placeholder="可选"></label>
+            <label><span>确认码</span><input id="esim-confirmation-code" placeholder="可选"></label>
+            <label><span>模块 IMEI</span><input id="esim-imei" inputmode="numeric" maxlength="15" placeholder="15 位 IMEI" required></label>
+            <label><span>目标 eUICC AID</span><input id="esim-aid" placeholder="可选"></label>
+            <button type="submit">开始下载</button>
+          </form>
+          <p id="esim-download-status" class="inline-status">填写运营商提供的激活信息后才会执行下载。</p>
         </details>
-        <details id="esim-runtime-section" class="fold-panel" hidden>
-          <summary><span>当前 Profile 运行状态</span><small>自动刷新</small></summary>
-          <div id="esim-runtime" class="diagnostic-grid"></div>
-        </details>
-        <details id="esim-phonebook-section" class="fold-panel" hidden>
-          <summary><span>卡片通讯录兼容性</span><small>只读检测</small></summary>
-          <div class="phonebook-probe">
-            <p id="esim-phonebook-status" class="inline-status">检测当前 Profile 是否支持卡内通讯录；不会写入联系人。</p>
-            <button id="probe-esim-phonebook" class="secondary compact" type="button">检测当前卡片</button>
-            <div id="esim-phonebook-result" class="phonebook-result" hidden></div>
+
+        <details id="esim-profile-panel" class="profile-panel" open>
+          <summary class="profile-panel-heading"><span class="profile-panel-title"><span class="section-kicker">INSTALLED PROFILES</span><strong>已安装 Profile</strong></span><small>启用、改名或删除卡内 Profile</small></summary>
+          <div class="profile-panel-content">
+            <details class="fold-panel">
+              <summary><span><span class="panel-icon" aria-hidden="true">i</span><strong>卡片概览</strong></span><small>卡类型、固件、EID</small></summary>
+              <div id="esim-chip" class="diagnostic-grid" hidden></div>
+            </details>
+            <details id="esim-runtime-section" class="fold-panel" hidden>
+              <summary><span><span class="panel-icon" aria-hidden="true">●</span><strong>当前运行状态</strong></span><small>自动刷新</small></summary>
+              <div id="esim-runtime" class="diagnostic-grid"></div>
+            </details>
+            <details id="esim-phonebook-section" class="fold-panel" hidden>
+              <summary><span><span class="panel-icon" aria-hidden="true">⌁</span><strong>卡片通讯录兼容性</strong></span><small>只读检测</small></summary>
+              <div class="phonebook-probe">
+                <p id="esim-phonebook-status" class="inline-status">检测当前 Profile 是否支持卡内通讯录；不会写入联系人。</p>
+                <button id="probe-esim-phonebook" class="secondary compact" type="button">检测当前卡片</button>
+                <div id="esim-phonebook-result" class="phonebook-result" hidden></div>
+              </div>
+            </details>
+            <div id="esim-list" class="list empty">尚未读取 eUICC/eSIM 卡片</div>
           </div>
         </details>
-        <div id="esim-list" class="list empty">尚未读取 eUICC/eSIM 卡片</div>
+      </section>
+
+      <section id="network" class="view">
+        <div class="view-intro">
+          <div><span class="section-kicker">CONNECTIVITY</span><h2>网络</h2><p>检查蜂窝注册、USB 网卡与默认出口。</p></div>
+          <button id="refresh-network" class="secondary" type="button">刷新诊断</button>
         </div>
-      </details>
-    </section>
+        <p id="network-status" class="inline-status attention">尚未读取网络状态</p>
+        <div id="network-grid" class="diagnostic-grid"></div>
 
-    <section id="network" class="view">
-      <div class="view-intro"><div><span class="section-kicker">USB NETWORK</span><h2>网络诊断</h2></div><p>检查蜂窝注册、USB 网卡与默认出口。</p></div>
-      <div class="section-heading">
-        <h2>网络诊断</h2>
-        <button id="refresh-network" class="secondary" type="button">刷新</button>
-      </div>
-      <p id="network-status" class="inline-status">尚未读取网络状态</p>
-      <div id="network-grid" class="diagnostic-grid"></div>
-      <h2 class="subheading">连通性检测</h2>
-      <div class="control-panel">
-        <button id="check-4g-route" class="secondary" type="button">检测 4G 出口</button>
-        <button id="check-proxy-route" class="secondary" type="button">检测代理</button>
-      </div>
-      <div id="network-checks" class="list empty">尚未检测</div>
-      <h2 class="subheading">USB 网卡模式</h2>
-      <div class="control-panel">
-        <button id="usbnet-mode-0" class="secondary" type="button">模式 0 · 短信/管理</button>
-        <button id="usbnet-mode-1" class="secondary" type="button">模式 1 · 4G 网卡</button>
-        <button id="usbnet-mode-2" class="secondary" type="button">模式 2 · 实验</button>
-        <button id="usbnet-mode-3" class="secondary" type="button">模式 3 · 实验</button>
-        <button id="reboot-module" class="secondary danger" type="button">重启模块</button>
-      </div>
-      <p class="inline-status">模式 0 适合短信和 AT 管理；模式 1 是目前确认可用的 USB 网卡模式。切换 usbnet 后通常需要重启模块。</p>
-      <h2 class="subheading">macOS 网络接口</h2>
-      <div id="network-interfaces" class="list empty">尚未读取接口</div>
-    </section>
+        <div class="settings-section">
+          <div class="section-heading"><div><h2>连通性检测</h2><p>确认真实出口与代理链路。</p></div></div>
+          <div class="control-panel">
+            <button id="check-4g-route" class="secondary" type="button">检测 4G 出口</button>
+            <button id="check-proxy-route" class="secondary" type="button">检测代理</button>
+          </div>
+          <div id="network-checks" class="list empty compact-list">尚未检测</div>
+        </div>
 
-    <section id="at" class="view">
-      <div class="view-intro"><div><span class="section-kicker">ADVANCED DIAGNOSTICS</span><h2>AT 调试</h2></div><p>直接向模块发送 AT 指令。</p></div>
-      <form id="at-form" class="toolbar">
-        <input id="at-command" type="text" value="AT+CSQ" spellcheck="false" required>
-        <button type="submit">执行</button>
-      </form>
-      <pre id="at-output">等待命令</pre>
-    </section>
-  </main>
+        <div class="settings-section">
+          <div class="section-heading"><div><h2>USB 网卡模式</h2><p>切换后通常需要重启模块。</p></div></div>
+          <div class="control-panel mode-grid">
+            <button id="usbnet-mode-0" class="secondary" type="button"><strong>模式 0</strong><small>短信 / 管理</small></button>
+            <button id="usbnet-mode-1" class="secondary" type="button"><strong>模式 1</strong><small>4G 网卡</small></button>
+            <button id="usbnet-mode-2" class="secondary" type="button"><strong>模式 2</strong><small>实验</small></button>
+            <button id="usbnet-mode-3" class="secondary" type="button"><strong>模式 3</strong><small>实验</small></button>
+            <button id="reboot-module" class="secondary danger" type="button"><strong>重启模块</strong><small>重新枚举 USB</small></button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="section-heading"><div><h2>macOS 网络接口</h2><p>系统当前识别的网卡与地址。</p></div></div>
+          <div id="network-interfaces" class="list empty">尚未读取接口</div>
+        </div>
+      </section>
+
+      <section id="at" class="view">
+        <div class="view-intro">
+          <div><span class="section-kicker">ADVANCED</span><h2>AT 调试</h2><p>直接向模块发送指令，适合诊断与开发。</p></div>
+          <span class="risk-badge">高级功能</span>
+        </div>
+        <div class="terminal-panel">
+          <form id="at-form" class="terminal-toolbar">
+            <span class="terminal-prompt">›</span>
+            <input id="at-command" type="text" value="AT+CSQ" spellcheck="false" aria-label="AT 指令" required>
+            <button type="submit">执行</button>
+          </form>
+          <pre id="at-output">等待命令</pre>
+        </div>
+      </section>
+    </main>
+  </div>
 
   <div id="app-modal" class="modal-backdrop" hidden>
     <form id="modal-form" class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
