@@ -34,55 +34,55 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #0a0d10;
-  --sidebar: #0d1115;
-  --surface: #11161b;
-  --surface-raised: #171d23;
-  --surface-soft: #151a20;
-  --surface-active: #1c252c;
-  --field: #0e1318;
-  --text: #f2f5f7;
-  --text-default: #c7d0d7;
-  --muted: #8b98a3;
-  --dim: #64717c;
-  --line: #252d35;
+  --canvas: #090a0c;
+  --sidebar: #0d0e10;
+  --surface: #131518;
+  --surface-raised: #191b1f;
+  --surface-soft: #17191c;
+  --surface-active: #24262b;
+  --field: #101215;
+  --text: #f3f4f5;
+  --text-default: #c9cdd2;
+  --muted: #92979e;
+  --dim: #686d74;
+  --line: #2a2d32;
   --hairline: rgba(255, 255, 255, .075);
-  --accent: #69b6d1;
-  --accent-strong: #8bcbe1;
-  --accent-soft: #102831;
-  --positive: #53c792;
-  --positive-soft: #10291f;
-  --warning: #e1ad55;
-  --warning-soft: #2a2112;
-  --negative: #ef7c89;
-  --negative-soft: #30191d;
+  --accent: #d4d8de;
+  --accent-strong: #f3f4f6;
+  --accent-soft: #22252a;
+  --positive: #64c995;
+  --positive-soft: #14271f;
+  --warning: #d8a85b;
+  --warning-soft: #2a2115;
+  --negative: #e67682;
+  --negative-soft: #2d1a1e;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     color-scheme: dark;
-    --canvas: #0a0d10;
-    --sidebar: #0d1115;
-    --surface: #11161b;
-    --surface-raised: #171d23;
-    --surface-soft: #151a20;
-    --surface-active: #1c252c;
-    --field: #0e1318;
-    --text: #f2f5f7;
-    --text-default: #c7d0d7;
-    --muted: #8b98a3;
-    --dim: #64717c;
-    --line: #252d35;
+    --canvas: #090a0c;
+    --sidebar: #0d0e10;
+    --surface: #131518;
+    --surface-raised: #191b1f;
+    --surface-soft: #17191c;
+    --surface-active: #24262b;
+    --field: #101215;
+    --text: #f3f4f5;
+    --text-default: #c9cdd2;
+    --muted: #92979e;
+    --dim: #686d74;
+    --line: #2a2d32;
     --hairline: rgba(255, 255, 255, .075);
-    --accent: #69b6d1;
-    --accent-strong: #8bcbe1;
-    --accent-soft: #102831;
-    --positive: #53c792;
-    --positive-soft: #10291f;
-    --warning: #e1ad55;
-    --warning-soft: #2a2112;
-    --negative: #ef7c89;
-    --negative-soft: #30191d;
+    --accent: #d4d8de;
+    --accent-strong: #f3f4f6;
+    --accent-soft: #22252a;
+    --positive: #64c995;
+    --positive-soft: #14271f;
+    --warning: #d8a85b;
+    --warning-soft: #2a2115;
+    --negative: #e67682;
+    --negative-soft: #2d1a1e;
   }
 }
 
