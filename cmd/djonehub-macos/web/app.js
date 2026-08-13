@@ -7,6 +7,7 @@ let networkTrafficPrevious = null;
 let networkTrafficInFlight = false;
 let networkActivityTimer = null;
 let networkActivityInFlight = false;
+let networkActivityCountdown = 5;
 
 function setThemePreference(theme) {
   if (theme === "light" || theme === "dark") {
@@ -754,9 +755,18 @@ function activityInitials(value) {
   return String(value || "?").trim().slice(0, 2).toUpperCase();
 }
 
+function renderNetworkActivityCountdown() {
+  const label = $("#activity-updated");
+  if (!label) return;
+  label.textContent = networkActivityInFlight
+    ? "正在刷新…"
+    : `${networkActivityCountdown} 秒后刷新`;
+}
+
 async function loadNetworkActivity() {
   if (networkActivityInFlight) return;
   networkActivityInFlight = true;
+  renderNetworkActivityCountdown();
   const list = $("#activity-list");
   try {
     const snapshot = await api("/api/network/activity");
@@ -772,7 +782,6 @@ async function loadNetworkActivity() {
     $("#activity-tunnel").textContent = snapshot.tunnel_interface || "直连";
     const connections = Array.isArray(snapshot.connections) ? snapshot.connections : [];
     $("#activity-count").textContent = `${connections.length} 个连接`;
-    $("#activity-updated").textContent = "刚刚更新";
     if (!connections.length) {
       list.className = "activity-list empty";
       list.textContent = "当前没有活跃的应用连接";
@@ -812,6 +821,8 @@ async function loadNetworkActivity() {
     list.textContent = `联网活动读取失败：${error.message}`;
   } finally {
     networkActivityInFlight = false;
+    networkActivityCountdown = 5;
+    renderNetworkActivityCountdown();
   }
 }
 
@@ -819,8 +830,20 @@ function setNetworkActivityPolling(enabled) {
   clearInterval(networkActivityTimer);
   networkActivityTimer = null;
   if (!enabled) return;
+  networkActivityCountdown = 5;
   void loadNetworkActivity();
-  networkActivityTimer = setInterval(loadNetworkActivity, 5000);
+  networkActivityTimer = setInterval(() => {
+    if (networkActivityInFlight) {
+      renderNetworkActivityCountdown();
+      return;
+    }
+    networkActivityCountdown -= 1;
+    if (networkActivityCountdown <= 0) {
+      void loadNetworkActivity();
+      return;
+    }
+    renderNetworkActivityCountdown();
+  }, 1000);
 }
 
 async function setUSBNetMode(mode) {
