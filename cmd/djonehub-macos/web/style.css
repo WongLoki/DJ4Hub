@@ -181,8 +181,13 @@ svg { display: block; }
 
 .header-actions, .heading-actions, .control-panel, .profile-actions, .sms-actions { display: flex; align-items: center; gap: 8px; }
 .header-actions { flex: none; }
-.mode-control { display: flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
-.mode-control > span { padding: 0 7px 0 9px; color: var(--dim); font-size: 9px; }
+.mode-control { display: flex; align-items: center; gap: 3px; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
+.mode-control > span { padding: 0 8px 0 10px; color: var(--dim); font-size: 9px; }
+.mode-option { display: flex; min-height: 28px; align-items: center; gap: 5px; border-color: transparent; padding: 0 11px; background: transparent; color: var(--muted); font-size: 9px; }
+.mode-option:hover:not(:disabled) { border-color: transparent; background: var(--surface-soft); color: var(--text); opacity: 1; }
+.mode-option[aria-pressed="true"], .mode-option[aria-pressed="true"]:hover { border-color: var(--text); background: var(--text); color: var(--canvas); opacity: 1; }
+.mode-check { display: none; font-size: 8px; font-weight: 700; }
+.mode-option[aria-pressed="true"] .mode-check { display: inline; }
 button {
   min-height: 32px;
   border: 1px solid var(--text);

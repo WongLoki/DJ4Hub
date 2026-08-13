@@ -204,6 +204,14 @@ function displayWorkMode(value) {
   }
 }
 
+function setWorkModeControl(value) {
+  const currentMode = value === null || value === undefined || value === "" ? -1 : Number(value);
+  const smsButton = $("#workmode-sms");
+  const networkButton = $("#workmode-network");
+  smsButton.setAttribute("aria-pressed", currentMode === 0 ? "true" : "false");
+  networkButton.setAttribute("aria-pressed", currentMode === 1 ? "true" : "false");
+}
+
 function signalTone(dbm) {
   const value = Number(dbm);
   if (!Number.isFinite(value) || value === 0) return "muted";
@@ -229,11 +237,13 @@ async function loadStatus() {
       ? displayWorkMode(status.usbnet_mode)
       : displayWorkMode(null);
     setValue("#work-mode", workMode.label, workMode.tone);
+    setWorkModeControl(status.usbnet_mode);
     $("#device-summary").textContent =
       status.hardware_status || [status.imei, status.firmware].filter(Boolean).join(" · ") || "模块初始化中";
     renderHardwareDetails(status);
   } catch (error) {
     $("#device-summary").textContent = error.message;
+    setWorkModeControl(null);
   }
 }
 
@@ -693,6 +703,10 @@ async function setUSBNetMode(mode) {
 }
 
 async function switchWorkMode(mode, label, button) {
+  if (button.getAttribute("aria-pressed") === "true") {
+    notice(`当前已是${label}`);
+    return;
+  }
   const confirmed = await showModal({
     title: `切换到${label}`,
     message: `将写入 usbnet=${mode} 并重启模块，USB 会短暂断开。`,
