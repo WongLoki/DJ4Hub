@@ -4,6 +4,8 @@
 
 DJI 4G Connect 是一个开源的 macOS 小工具，用于解决**大疆第一代 4G 模块**连接 Mac 后，首次 USB 枚举没有直接出现可用网卡的问题。
 
+本项目现作为 [DJ 4G Hub monorepo](https://github.com/WongLoki/dj-4g-hub) 中的独立 App 维护，源码位于 `apps/dji-4g-connect/`，并继续使用本目录的 MIT License。
+
 它不是完整的调制解调器管理器，也不会启动网页或常驻后台。插入模块后双击 App，它会完成一次检查和必要的恢复，显示 macOS 通知后自动退出。
 
 ## 它解决什么问题
@@ -48,13 +50,13 @@ DJI 4G Connect 将这套恢复流程封装成一次点击：
 
 ## 下载与使用
 
-1. 从 [Releases](https://github.com/WongLoki/DJI-4G-Connect/releases) 下载 `DJI-4G-Connect-macOS-arm64-*.zip`；
+1. 从 [monorepo Releases](https://github.com/WongLoki/dj-4g-hub/releases) 下载 `DJI-4G-Connect-macOS-arm64-*.zip`；
 2. 可选：用同名 `.sha256` 文件核对下载；
 3. 完整解压，将 `DJI 4G Connect.app` 拖入“应用程序”；
 4. 插入模块，双击 App；
 5. 等待原生通知显示激活结果。
 
-如果 DJOneHub 或其他程序正在占用模块 USB AT 接口，请先停止它。
+如果 DJ 4G Hub 或其他程序正在占用模块 USB AT 接口，请先停止它。
 
 ### macOS 阻止打开
 
@@ -87,13 +89,13 @@ GitHub Actions 使用 `macos-15` Apple Silicon Runner：
 
 - 每次 push 和 pull request 自动运行测试并打包；
 - 构建结果作为 Actions Artifact 保存；
-- 推送 `v*` tag 时自动创建 GitHub Release，并上传 ZIP 与 SHA-256。
+- 推送 `connect-v*` tag 时自动创建 GitHub Release，并上传 ZIP 与 SHA-256。
 
 发布示例：
 
 ```sh
-git tag v0.2.0
-git push origin v0.2.0
+git tag connect-v0.3.0
+git push origin connect-v0.3.0
 ```
 
 ## 开源许可证

@@ -1,11 +1,17 @@
-name: Build
+name: DJI 4G Connect
 
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ['connect-v*']
+    paths:
+      - 'apps/dji-4g-connect/**'
+      - '.github/workflows/connect.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'apps/dji-4g-connect/**'
+      - '.github/workflows/connect.yml'
   workflow_dispatch:
 
 permissions:
@@ -24,8 +30,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
-          cache: true
+          go-version-file: apps/dji-4g-connect/go.mod
+          cache-dependency-path: apps/dji-4g-connect/go.mod
 
       - name: Install pkg-config
         run: |
@@ -37,17 +43,19 @@ jobs:
         id: version
         shell: bash
         run: |
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            version="${GITHUB_REF_NAME#v}"
+          if [[ "${GITHUB_REF}" == refs/tags/connect-v* ]]; then
+            version="${GITHUB_REF_NAME#connect-v}"
           else
             version="dev-${GITHUB_SHA::7}"
           fi
           echo "value=${version}" >> "${GITHUB_OUTPUT}"
 
       - name: Build and verify app
+        working-directory: apps/dji-4g-connect
         run: ./scripts/build-app.sh "${{ steps.version.outputs.value }}"
 
       - name: Run tests against bundled libusb
+        working-directory: apps/dji-4g-connect
         shell: bash
         run: |
           build_root="${TMPDIR:-/tmp}/dji-4g-connect-build-arm64"
@@ -60,13 +68,13 @@ jobs:
         with:
           name: DJI-4G-Connect-macOS-arm64-${{ steps.version.outputs.value }}
           path: |
-            dist/DJI-4G-Connect-macOS-arm64-${{ steps.version.outputs.value }}.zip
-            dist/DJI-4G-Connect-macOS-arm64-${{ steps.version.outputs.value }}.zip.sha256
+            apps/dji-4g-connect/dist/DJI-4G-Connect-macOS-arm64-${{ steps.version.outputs.value }}.zip
+            apps/dji-4g-connect/dist/DJI-4G-Connect-macOS-arm64-${{ steps.version.outputs.value }}.zip.sha256
           if-no-files-found: error
 
   release:
     name: Publish tagged release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/connect-v')
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -89,4 +97,4 @@ jobs:
             dist/DJI-4G-Connect-macOS-arm64-*.zip.sha256 \
             --repo "${GITHUB_REPOSITORY}" \
             --generate-notes \
-            --title "DJI 4G Connect ${GITHUB_REF_NAME}"
+            --title "DJI 4G Connect ${GITHUB_REF_NAME#connect-}"

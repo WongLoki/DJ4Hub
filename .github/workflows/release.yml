@@ -2,7 +2,7 @@ name: Release macOS
 
 on:
   push:
-    tags: ['v*']
+    tags: ['hub-v*']
 
 permissions:
   contents: write
@@ -23,12 +23,14 @@ jobs:
         env:
           PKG_CONFIG_PATH: /opt/homebrew/lib/pkgconfig
       - name: Build release archive
-        run: ./scripts/package-macos-arm64.sh "${GITHUB_REF_NAME}"
+        run: ./scripts/package-macos-arm64.sh "${GITHUB_REF_NAME#hub-}"
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "${GITHUB_REF_NAME}"
-          dist/release/DJ-4G-Hub-macOS-arm64-${GITHUB_REF_NAME}.zip
-          dist/release/DJ-4G-Hub-macOS-arm64-${GITHUB_REF_NAME}.zip.sha256
-          --generate-notes
+        run: |
+          version="${GITHUB_REF_NAME#hub-}"
+          gh release create "${GITHUB_REF_NAME}" \
+            "dist/release/DJ-4G-Hub-macOS-arm64-${version}.zip" \
+            "dist/release/DJ-4G-Hub-macOS-arm64-${version}.zip.sha256" \
+            --generate-notes \
+            --title "DJ 4G Hub ${version}"

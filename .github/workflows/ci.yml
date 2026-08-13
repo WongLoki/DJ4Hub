@@ -3,7 +3,11 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'apps/dji-4g-connect/**'
   pull_request:
+    paths-ignore:
+      - 'apps/dji-4g-connect/**'
 
 permissions:
   contents: read
