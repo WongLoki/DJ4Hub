@@ -13,16 +13,26 @@ DJ 4G Hub 最初从 [ZenGeekLabs/DJOneHub](https://github.com/ZenGeekLabs/DJOneH
 
 独立维护不代表抹去来源。仓库继续保留原许可证要求的声明、上游作者署名以及第三方组件许可证。详细来源见 [项目来源与许可](#项目来源与许可) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-## 仓库中的产品
+## 相关项目
 
-这是一个包含两个 macOS 产品的 monorepo：
+DJI 4G Connect 是独立开发、独立发布的 MIT 项目。本仓库只通过 Git submodule 固定一个经过验证的版本，方便一起检出和联调，不将其源码、提交、Issue、Actions、Release 或许可证合并进 DJ 4G Hub。
 
-| 产品 | 目录 | 用途 | 许可证 |
+| 项目 | 位置 | 用途 | 维护方式 |
 | --- | --- | --- | --- |
-| DJ 4G Hub | `cmd/dj4ghub-macos` | 完整设备控制台：短信、eSIM、网络、流量和 AT 调试 | 根目录 PolyForm Noncommercial |
-| DJI 4G Connect | [`apps/dji-4g-connect`](apps/dji-4g-connect) | 双击即用的一次性 USB 网卡激活 App | 子目录 MIT |
+| DJ 4G Hub | 当前仓库 | 完整设备控制台：短信、eSIM、网络、流量和 AT 调试 | 当前仓库独立维护 |
+| [DJI 4G Connect](https://github.com/WongLoki/DJI-4G-Connect) | `apps/dji-4g-connect` submodule | 双击即用的一次性 USB 网卡激活 App | 独立仓库、MIT License |
 
-两个产品共享同一个 Issue、Actions 和 Releases 页面，但仍分别构建、发布并保留清晰的许可证边界。
+克隆时需要同时取回子仓库：
+
+```sh
+git clone --recurse-submodules https://github.com/WongLoki/dj-4g-hub.git
+```
+
+已经克隆主仓库时：
+
+```sh
+git submodule update --init --recursive
+```
 
 ## 我们重新实现和新增了什么
 
@@ -73,7 +83,7 @@ DJ 4G Hub 最初从 [ZenGeekLabs/DJOneHub](https://github.com/ZenGeekLabs/DJOneH
 
 ## 下载与安装
 
-从项目 [Releases](https://github.com/WongLoki/dj-4g-hub/releases) 下载名称包含 `DJ-4G-Hub-macOS-arm64` 的 ZIP，并按需使用同名 `.sha256` 校验文件。只需要一次性激活工具时，下载 `DJI-4G-Connect-macOS-arm64`。
+从项目 [Releases](https://github.com/WongLoki/dj-4g-hub/releases) 下载名称包含 `DJ-4G-Hub-macOS-arm64` 的 ZIP，并按需使用同名 `.sha256` 校验文件。只需要一次性激活工具时，请前往 [DJI 4G Connect Releases](https://github.com/WongLoki/DJI-4G-Connect/releases)。
 
 ```sh
 shasum -a 256 DJ-4G-Hub-*.zip
@@ -180,17 +190,14 @@ go test ./...
 
 ```text
 cmd/dj4ghub-macos/       macOS 服务、USB AT 和内嵌网页
-apps/dji-4g-connect/     一次性 USB 网卡激活 App（独立 Go module）
+apps/dji-4g-connect/     独立 DJI 4G Connect 仓库的 submodule 引用
 internal/                设备后端、短信、eSIM 与配置能力
 pkg/                     MBIM、短信编码和日志组件
 packaging/               安装器、启动器与发行说明
 scripts/                 本地构建和 Apple Silicon 打包脚本
 ```
 
-根目录的 `go.work` 同时包含两个 Go module。GitHub Actions 会根据改动目录选择对应测试和打包流程：
-
-- `hub-v*`：发布 DJ 4G Hub，例如 `hub-v0.1.0`。
-- `connect-v*`：发布 DJI 4G Connect，例如 `connect-v0.3.0`。
+DJ 4G Hub 在本仓库运行测试与发布流程，推送 `v*` 标签时构建 Release。DJI 4G Connect 在自己的仓库中运行独立 Actions 和发布流程。
 
 ## 移动设备路线图
 
@@ -221,7 +228,7 @@ scripts/                 本地构建和 Apple Silicon 打包脚本
 
 DJ 4G Hub 主项目包含从 VoHive 演进而来的代码，因此根目录代码继续遵循 [PolyForm Noncommercial License 1.0.0](LICENSE)，不是 MIT、Apache-2.0 等宽松许可证。源码公开不代表可以忽略非商业限制。
 
-`apps/dji-4g-connect/` 是独立重写的子项目，明确使用其目录内的 [MIT License](apps/dji-4g-connect/LICENSE)。该 MIT 授权只覆盖这一子目录，不改变 DJ 4G Hub 主项目和历史版本的许可证。
+DJI 4G Connect 是另一个独立仓库，使用其自身的 [MIT License](https://github.com/WongLoki/DJI-4G-Connect/blob/main/LICENSE)。本仓库中的 submodule 只是对外部提交的引用，该 MIT 授权不改变 DJ 4G Hub 的许可证，DJ 4G Hub 的条款也不覆盖 Connect 仓库。
 
 必须保留的上游声明：
 

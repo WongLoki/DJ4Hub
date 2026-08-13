@@ -1,6 +1,6 @@
-# DJ 4G Hub Monorepo 源码结构
+# DJ 4G Hub 源码结构
 
-仓库同时维护完整的 DJ 4G Hub 控制台和独立的 DJI 4G Connect 激活 App。主项目按 `cmd/dj4ghub-macos` 的真实 Go 依赖图保留必要源码；Connect 作为独立 Go module 位于 `apps/`，两者由根目录 `go.work` 组成统一开发工作区。
+仓库按 `cmd/dj4ghub-macos` 的真实 Go 依赖图保留 DJ 4G Hub 必要源码。`apps/dji-4g-connect` 是指向独立 DJI 4G Connect 仓库的 Git submodule，不属于本仓库源码。
 
 ## 目录树
 
@@ -10,7 +10,7 @@ DJ-4G-Hub-source-minimal/
 │   └── dj4ghub-macos/       # macOS 主程序、USB AT、短信、网络与内嵌网页
 │       └── web/              # 当前实际显示的原生管理页面
 ├── apps/
-│   └── dji-4g-connect/       # 一次性 USB 网卡激活 App（独立 MIT Go module）
+│   └── dji-4g-connect/       # 独立 DJI 4G Connect 仓库的 submodule
 ├── internal/
 │   ├── apduarbiter/          # SIM/eUICC APDU 通道并发协调
 │   ├── backend/              # AT、MBIM、QMI 后端的统一能力接口
@@ -32,7 +32,6 @@ DJ-4G-Hub-source-minimal/
 │   └── package-macos-arm64.sh# Apple Silicon 发行包构建
 ├── third_party/              # 当前构建实际使用的本地第三方源码
 ├── go.mod
-├── go.work                   # DJ 4G Hub 与 DJI 4G Connect 工作区
 ├── go.sum
 ├── LICENSE
 ├── THIRD_PARTY_NOTICES.md
