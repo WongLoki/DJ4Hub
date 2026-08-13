@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"encoding/base64"
+	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -161,6 +163,28 @@ type localNetworkConnection struct {
 	Interface string `json:"interface"`
 	IPv4      string `json:"ipv4"`
 	IsDefault bool   `json:"is_default"`
+}
+
+type networkActivitySnapshot struct {
+	Available         bool                    `json:"available"`
+	PhysicalInterface string                  `json:"physical_interface,omitempty"`
+	PhysicalIPv4      string                  `json:"physical_ipv4,omitempty"`
+	TunnelInterface   string                  `json:"tunnel_interface,omitempty"`
+	PhysicalActive    bool                    `json:"physical_active"`
+	SampledAtMS       int64                   `json:"sampled_at_ms"`
+	Connections       []networkActivityRecord `json:"connections"`
+}
+
+type networkActivityRecord struct {
+	Process   string `json:"process"`
+	Host      string `json:"host,omitempty"`
+	IP        string `json:"ip"`
+	Port      string `json:"port,omitempty"`
+	Protocol  string `json:"protocol"`
+	Interface string `json:"interface"`
+	State     string `json:"state,omitempty"`
+	RXBytes   uint64 `json:"rx_bytes"`
+	TXBytes   uint64 `json:"tx_bytes"`
 }
 
 type networkByteCounters struct {
@@ -713,6 +737,7 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("POST /api/at", a.executeAT)
 	mux.HandleFunc("GET /api/network", a.networkDiagnostic)
 	mux.HandleFunc("GET /api/network/local", a.localNetworkConnection)
+	mux.HandleFunc("GET /api/network/activity", a.networkActivity)
 	mux.HandleFunc("GET /api/network/traffic", a.networkTraffic)
 	mux.HandleFunc("POST /api/network/check-4g", a.check4GRoute)
 	mux.HandleFunc("POST /api/network/check-proxy", a.checkProxyRoute)
@@ -1434,6 +1459,138 @@ func (a *app) localNetworkConnection(w http.ResponseWriter, _ *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, nil)
+}
+
+func (a *app) networkActivity(w http.ResponseWriter, _ *http.Request) {
+	snapshot := networkActivitySnapshot{SampledAtMS: time.Now().UnixMilli()}
+	if discoverDJIUSBDevice() == nil {
+		writeJSON(w, http.StatusOK, snapshot)
+		return
+	}
+	interfaces := discoverMacNetworkInterfaces()
+	route := discoverMacDefaultRoute()
+	physical := selectUSBTrafficInterface(interfaces, route)
+	if physical == "" {
+		writeJSON(w, http.StatusOK, snapshot)
+		return
+	}
+	snapshot.Available = true
+	snapshot.PhysicalInterface = physical
+	for _, item := range interfaces {
+		if item.Name == physical {
+			snapshot.PhysicalIPv4 = item.IPv4
+			break
+		}
+	}
+	tunnel := route.Interface
+	if tunnel == "" {
+		tunnel = physical
+	}
+	snapshot.TunnelInterface = tunnel
+
+	type sampleResult struct {
+		records []networkActivityRecord
+	}
+	results := make(chan sampleResult, 2)
+	for _, mode := range []string{"tcp", "udp"} {
+		go func(mode string) {
+			out, err := exec.Command("nettop", "-L", "1", "-x", "-m", mode, "-t", "wired").Output()
+			if err != nil {
+				results <- sampleResult{}
+				return
+			}
+			results <- sampleResult{records: parseNettopActivity(string(out))}
+		}(mode)
+	}
+	var all []networkActivityRecord
+	for range 2 {
+		all = append(all, (<-results).records...)
+	}
+	activityInterface := tunnel
+	for _, item := range all {
+		if item.Interface == physical {
+			snapshot.PhysicalActive = true
+		}
+		if item.Interface == activityInterface {
+			snapshot.Connections = append(snapshot.Connections, item)
+		}
+	}
+	sort.Slice(snapshot.Connections, func(i, j int) bool {
+		left := snapshot.Connections[i].RXBytes + snapshot.Connections[i].TXBytes
+		right := snapshot.Connections[j].RXBytes + snapshot.Connections[j].TXBytes
+		return left > right
+	})
+	if len(snapshot.Connections) > 8 {
+		snapshot.Connections = snapshot.Connections[:8]
+	}
+	writeJSON(w, http.StatusOK, snapshot)
+}
+
+func parseNettopActivity(out string) []networkActivityRecord {
+	reader := csv.NewReader(strings.NewReader(out))
+	reader.FieldsPerRecord = -1
+	var records []networkActivityRecord
+	process := "系统"
+	for {
+		row, err := reader.Read()
+		if err != nil {
+			break
+		}
+		if len(row) < 6 || row[1] == "" {
+			continue
+		}
+		description := strings.TrimSpace(row[1])
+		iface := strings.TrimSpace(row[2])
+		if !strings.Contains(description, "<->") {
+			process = regexp.MustCompile(`\.\d+$`).ReplaceAllString(description, "")
+			continue
+		}
+		protocol, host, port := parseNettopFlow(description)
+		if host == "" || iface == "" || host == "127.0.0.1" || host == "::1" {
+			continue
+		}
+		rx, _ := strconv.ParseUint(strings.TrimSpace(row[4]), 10, 64)
+		tx, _ := strconv.ParseUint(strings.TrimSpace(row[5]), 10, 64)
+		state := ""
+		if strings.HasPrefix(protocol, "tcp") && len(row) > 3 {
+			state = strings.TrimSpace(row[3])
+		}
+		record := networkActivityRecord{
+			Process: process, Port: port, Protocol: protocol,
+			Interface: iface, State: state, RXBytes: rx, TXBytes: tx,
+		}
+		if net.ParseIP(host) == nil {
+			record.Host = host
+		} else {
+			record.IP = host
+		}
+		records = append(records, record)
+	}
+	return records
+}
+
+func parseNettopFlow(description string) (protocol, host, port string) {
+	fields := strings.Fields(description)
+	if len(fields) < 2 {
+		return "", "", ""
+	}
+	protocol = fields[0]
+	flow := fields[len(fields)-1]
+	parts := strings.SplitN(flow, "<->", 2)
+	if len(parts) != 2 {
+		return protocol, "", ""
+	}
+	remote := parts[1]
+	if strings.Count(remote, ":") > 1 {
+		if index := strings.LastIndex(remote, "."); index > 0 {
+			return protocol, strings.Trim(remote[:index], "[]"), remote[index+1:]
+		}
+		return protocol, strings.Trim(remote, "[]"), ""
+	}
+	if index := strings.LastIndex(remote, ":"); index > 0 {
+		return protocol, strings.Trim(remote[:index], "[]"), remote[index+1:]
+	}
+	return protocol, strings.Trim(remote, "[]"), ""
 }
 
 func (a *app) networkTraffic(w http.ResponseWriter, _ *http.Request) {

@@ -125,6 +125,23 @@
         </div>
         <section id="hardware-details" class="hardware-details" hidden></section>
         <p id="workmode-status" class="inline-status attention" hidden></p>
+        <section class="activity-section" aria-labelledby="activity-title">
+          <div class="section-heading activity-heading">
+            <div><h2 id="activity-title">联网活动</h2><p>仅展示连接元数据，不读取通信内容。</p></div>
+            <span id="activity-updated" class="activity-updated">等待采样</span>
+          </div>
+          <div class="activity-panel">
+            <div class="activity-route" aria-label="当前联网链路">
+              <span><small>物理出口</small><strong id="activity-physical">--</strong></span>
+              <i aria-hidden="true">→</i>
+              <span><small>网络隧道</small><strong id="activity-tunnel">--</strong></span>
+              <i aria-hidden="true">→</i>
+              <span><small>应用连接</small><strong id="activity-count">--</strong></span>
+            </div>
+            <div id="activity-list" class="activity-list empty">尚未读取联网活动</div>
+            <p class="activity-note">域名来自 macOS 本地解析缓存，可能显示 CDN 或服务商主机；HTTPS 页面与内容不可见。</p>
+          </div>
+        </section>
       </section>
 
       <section id="sms" class="view">

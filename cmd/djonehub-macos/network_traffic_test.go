@@ -44,3 +44,29 @@ func TestSessionTrafficIsDownloadPlusUpload(t *testing.T) {
 		t.Fatalf("session traffic = rx:%d tx:%d total:%d", rx, tx, total)
 	}
 }
+
+func TestParseNettopActivityTracksProcessAndInterface(t *testing.T) {
+	input := `time,,interface,state,bytes_in,bytes_out,
+23:01:00,Google Chrome H.976,,,69502,80212,
+23:01:00,tcp4 100.65.155.123:54780<->104.18.32.47:443,utun14,Established,4355,28456,
+23:01:00,io.tailscale.ip.35082,,,169811,1687128,
+23:01:00,tcp4 192.168.225.23:53344<->205.147.105.30:443,en9,Established,7606,21720,
+`
+	records := parseNettopActivity(input)
+	if len(records) != 2 {
+		t.Fatalf("records = %d, want 2", len(records))
+	}
+	if records[0].Process != "Google Chrome H" || records[0].Interface != "utun14" || records[0].IP != "104.18.32.47" || records[0].Port != "443" {
+		t.Fatalf("first record = %+v", records[0])
+	}
+	if records[1].Process != "io.tailscale.ip" || records[1].Interface != "en9" {
+		t.Fatalf("second record = %+v", records[1])
+	}
+}
+
+func TestParseNettopFlowSupportsIPv6(t *testing.T) {
+	protocol, host, port := parseNettopFlow("tcp6 2408:1::2.53147<->2606:b740:49::113.80")
+	if protocol != "tcp6" || host != "2606:b740:49::113" || port != "80" {
+		t.Fatalf("flow = %q %q %q", protocol, host, port)
+	}
+}

@@ -5,6 +5,8 @@ let esimHealthInFlight = false;
 let networkTrafficTimer = null;
 let networkTrafficPrevious = null;
 let networkTrafficInFlight = false;
+let networkActivityTimer = null;
+let networkActivityInFlight = false;
 
 function setThemePreference(theme) {
   if (theme === "light" || theme === "dark") {
@@ -748,6 +750,79 @@ function setNetworkTrafficPolling(enabled) {
   networkTrafficTimer = setInterval(loadNetworkTraffic, 1000);
 }
 
+function activityInitials(value) {
+  return String(value || "?").trim().slice(0, 2).toUpperCase();
+}
+
+async function loadNetworkActivity() {
+  if (networkActivityInFlight) return;
+  networkActivityInFlight = true;
+  const list = $("#activity-list");
+  try {
+    const snapshot = await api("/api/network/activity");
+    if (!snapshot.available) {
+      $("#activity-physical").textContent = "未检测到 4G 网卡";
+      $("#activity-tunnel").textContent = "--";
+      $("#activity-count").textContent = "0 个连接";
+      list.className = "activity-list empty";
+      list.textContent = "当前没有可展示的 4G 联网活动";
+      return;
+    }
+    $("#activity-physical").textContent = `${snapshot.physical_interface}${snapshot.physical_ipv4 ? ` · ${snapshot.physical_ipv4}` : ""}${snapshot.physical_active ? " · 活跃" : ""}`;
+    $("#activity-tunnel").textContent = snapshot.tunnel_interface || "直连";
+    const connections = Array.isArray(snapshot.connections) ? snapshot.connections : [];
+    $("#activity-count").textContent = `${connections.length} 个连接`;
+    $("#activity-updated").textContent = "刚刚更新";
+    if (!connections.length) {
+      list.className = "activity-list empty";
+      list.textContent = "当前没有活跃的应用连接";
+      return;
+    }
+    list.className = "activity-list";
+    list.replaceChildren(...connections.map((connection) => {
+      const row = document.createElement("article");
+      row.className = "activity-row";
+      const app = document.createElement("div");
+      app.className = "activity-app";
+      const glyph = document.createElement("i");
+      glyph.textContent = activityInitials(connection.process);
+      const process = document.createElement("strong");
+      process.textContent = connection.process || "系统";
+      app.append(glyph, process);
+      const target = document.createElement("div");
+      target.className = "activity-target";
+      const host = document.createElement("strong");
+      host.textContent = connection.host || connection.ip;
+      const detail = document.createElement("small");
+      detail.textContent = connection.ip
+        ? `${connection.ip}${connection.port ? `:${connection.port}` : ""}`
+        : (connection.port ? `端口 ${connection.port}` : "目标主机");
+      target.append(host, detail);
+      const protocol = document.createElement("span");
+      protocol.className = "activity-protocol";
+      protocol.textContent = connection.protocol || "IP";
+      const bytes = document.createElement("span");
+      bytes.className = "activity-bytes";
+      bytes.textContent = `↓ ${formatTrafficBytes(connection.rx_bytes)} · ↑ ${formatTrafficBytes(connection.tx_bytes)}`;
+      row.append(app, target, protocol, bytes);
+      return row;
+    }));
+  } catch (error) {
+    list.className = "activity-list empty";
+    list.textContent = `联网活动读取失败：${error.message}`;
+  } finally {
+    networkActivityInFlight = false;
+  }
+}
+
+function setNetworkActivityPolling(enabled) {
+  clearInterval(networkActivityTimer);
+  networkActivityTimer = null;
+  if (!enabled) return;
+  void loadNetworkActivity();
+  networkActivityTimer = setInterval(loadNetworkActivity, 5000);
+}
+
 async function setUSBNetMode(mode) {
   const label = `模式 ${mode}`;
   const confirmed = await showModal({
@@ -1062,6 +1137,7 @@ document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.add("active");
     tab.setAttribute("aria-current", "page");
     $(`#${tab.dataset.view}`).classList.add("active");
+    setNetworkActivityPolling(tab.dataset.view === "overview");
     if (tab.dataset.view === "esim") loadESIM();
     else setESIMHealthPolling(false);
     if (tab.dataset.view === "network") loadNetwork();
@@ -1217,6 +1293,7 @@ loadStatus();
 loadSMS();
 loadSidebarConnection();
 setNetworkTrafficPolling(true);
+setNetworkActivityPolling(true);
 setInterval(loadStatus, 10000);
 setInterval(loadSMS, 5000);
 setInterval(loadSidebarConnection, 10000);
