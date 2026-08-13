@@ -196,8 +196,8 @@ function displayWorkMode(value) {
 	  return { label: "待读取", tone: "muted" };
 	}
   switch (Number(value)) {
-    case 0: return { label: "短信模式", tone: "info" };
-    case 1: return { label: "上网模式", tone: "info" };
+    case 0: return { label: "短信模式", tone: "neutral" };
+    case 1: return { label: "上网模式", tone: "neutral" };
     case 2: return { label: "实验模式 2", tone: "warn" };
     case 3: return { label: "实验模式 3", tone: "warn" };
     default: return { label: "待读取", tone: "muted" };
@@ -225,9 +225,9 @@ function signalTone(dbm) {
 async function loadStatus() {
   try {
     const status = await api("/api/status");
-    setValue("#operator", displayOperatorName(status.operator), status.operator ? "info" : "muted");
+    setValue("#operator", displayOperatorName(status.operator), status.operator ? "neutral" : "muted");
     setValue("#signal", status.signal_dbm ? `${status.signal_dbm} dBm` : "--", signalTone(status.signal_dbm));
-    setValue("#network-mode", status.network_mode || status.reg_status_text || "--", status.network_mode ? "info" : "muted");
+    setValue("#network-mode", status.network_mode || status.reg_status_text || "--", status.network_mode ? "neutral" : "muted");
     setValue(
       "#sim",
       status.sim_inserted ? "已插入" : (status.usb_device ? "待读取" : "未检测到"),
@@ -660,7 +660,7 @@ async function loadNetworkTraffic() {
     setValue("#traffic-tx-rate", `${formatTrafficBytes(txRate)}/s`, "neutral");
     setValue("#traffic-session-rx", formatTrafficBytes(sample.session_rx_bytes), "neutral");
     setValue("#traffic-session-tx", formatTrafficBytes(sample.session_tx_bytes), "neutral");
-    setValue("#traffic-session-total", formatTrafficBytes(sample.session_total_bytes), "emphasis");
+    setValue("#traffic-session-total", formatTrafficBytes(sample.session_total_bytes), "neutral");
     $("#traffic-session-total").title = "本次启动期间的下载与上传流量之和；关闭 DJOneHub 后清零";
   } catch (error) {
     setValue("#traffic-rx-rate", "--", "muted");

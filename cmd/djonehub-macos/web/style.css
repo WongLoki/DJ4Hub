@@ -223,8 +223,8 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .status-grid span { display: block; color: var(--muted); font-size: 9px; }
 .status-grid strong { display: block; margin-top: 8px; overflow-wrap: anywhere; color: var(--text); font-size: 16px; font-weight: 550; letter-spacing: -.025em; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .status-grid small { display: block; margin-top: 6px; color: var(--dim); font-size: 8px; }
-.status-grid strong.good { color: var(--positive); }
-.status-grid strong.info, .status-grid strong.signal-fair, .status-grid strong.emphasis { color: var(--accent); }
+.status-grid strong.good, .status-grid strong.signal-fair { color: var(--positive); }
+.status-grid strong.info, .status-grid strong.emphasis { color: var(--accent); }
 .status-grid strong.warn, .status-grid strong.orange { color: var(--warning); }
 .status-grid strong.bad { color: var(--negative); }
 .status-grid strong.muted { color: var(--dim); }
