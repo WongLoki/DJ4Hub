@@ -22,6 +22,7 @@
   --warning-soft: #fff4df;
   --negative: #c54e5d;
   --negative-soft: #fcecee;
+  --sidebar-shadow: 14px 0 36px rgba(17, 24, 32, .055);
   --sidebar-width: 232px;
   --radius-lg: 16px;
   --radius-md: 11px;
@@ -56,6 +57,7 @@
   --warning-soft: #2a2115;
   --negative: #e67682;
   --negative-soft: #2d1a1e;
+  --sidebar-shadow: 18px 0 44px rgba(0, 0, 0, .28);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -83,6 +85,7 @@
     --warning-soft: #2a2115;
     --negative: #e67682;
     --negative-soft: #2d1a1e;
+    --sidebar-shadow: 18px 0 44px rgba(0, 0, 0, .28);
   }
 }
 
@@ -103,9 +106,9 @@ svg { display: block; }
   display: flex;
   width: var(--sidebar-width);
   flex-direction: column;
-  border-right: 1px solid var(--line);
   padding: 20px 14px 14px;
   background: var(--sidebar);
+  box-shadow: var(--sidebar-shadow);
 }
 
 .sidebar-brand { display: flex; align-items: center; gap: 11px; padding: 2px 8px 20px; }
@@ -162,7 +165,7 @@ svg { display: block; }
 .tab small { color: var(--dim); font-size: 9px; }
 .tab.active svg { color: var(--accent); }
 
-.sidebar-footer { display: grid; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+.sidebar-footer { display: grid; gap: 10px; padding-top: 14px; }
 .sidebar-footer > p { margin: 0; color: var(--dim); font-size: 9px; text-align: center; }
 .theme-switch { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; border-radius: 10px; padding: 3px; background: var(--surface-soft); }
 .theme-option { display: grid; min-width: 0; min-height: 34px; place-items: center; gap: 2px; border: 0; border-radius: 7px; padding: 4px; background: transparent; color: var(--dim); }
@@ -398,7 +401,7 @@ body.modal-open { overflow: hidden; }
 }
 
 @media (max-width: 760px) {
-  .app-sidebar { position: static; width: 100%; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 10px 14px; }
+  .app-sidebar { position: static; width: 100%; height: auto; border-bottom: 1px solid var(--line); padding: 10px 14px; box-shadow: none; }
   .sidebar-brand, .device-presence, .nav-label, .sidebar-footer > p { display: none; }
   .task-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); order: 2; }
   .tab { min-height: 48px; justify-content: center; gap: 6px; padding: 5px; }
