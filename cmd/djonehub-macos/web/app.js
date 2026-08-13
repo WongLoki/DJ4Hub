@@ -212,6 +212,13 @@ function setWorkModeControl(value) {
   networkButton.setAttribute("aria-pressed", currentMode === 1 ? "true" : "false");
 }
 
+function setUSBNetModeSelector(value) {
+  const currentMode = value === null || value === undefined || value === "" ? -1 : Number(value);
+  [0, 1, 2, 3].forEach((mode) => {
+    $("#usbnet-mode-" + mode).setAttribute("aria-pressed", currentMode === mode ? "true" : "false");
+  });
+}
+
 function setHeaderDeviceState(connected, label = "设备在线") {
   const indicator = $("#header-device-state");
   indicator.classList.toggle("is-online", connected);
@@ -247,6 +254,7 @@ async function loadStatus() {
       : displayWorkMode(null);
     setValue("#work-mode", workMode.label, workMode.tone);
     setWorkModeControl(status.usbnet_mode);
+    setUSBNetModeSelector(status.usbnet_mode);
     $("#device-summary").textContent =
       status.hardware_status || [status.imei, status.firmware].filter(Boolean).join(" · ") || "模块初始化中";
     renderHardwareDetails(status);
@@ -595,6 +603,7 @@ async function loadNetwork() {
   $("#network-status").textContent = "正在读取网络诊断...";
   try {
     const diag = await api("/api/network");
+    setUSBNetModeSelector(diag.usbnet_mode);
     const active = Array.isArray(diag.active_contexts) ? diag.active_contexts.join(", ") : "";
     const apns = Array.isArray(diag.pdp_contexts)
       ? diag.pdp_contexts.map((ctx) => `${ctx.id}:${ctx.apn}`).join(" · ")

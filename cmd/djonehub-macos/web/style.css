@@ -387,10 +387,24 @@ input:focus { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); 
 .settings-section { margin-top: 28px; }
 .control-panel { flex-wrap: wrap; }
 .compact-list { min-height: 70px !important; margin-top: 9px; }
-.mode-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.mode-grid button { display: grid; min-height: 58px; place-content: center; gap: 4px; border-radius: var(--radius-md); text-align: left; }
-.mode-grid button strong { color: inherit; font-size: 10px; font-weight: 550; }
-.mode-grid button small { color: var(--dim); font-size: 8px; font-weight: 400; }
+.usbnet-controls { display: flex; align-items: stretch; gap: 10px; }
+.usbnet-selector { display: grid; min-width: 0; flex: 1; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; border: 1px solid var(--line); border-radius: 12px; padding: 3px; background: var(--surface); }
+.usbnet-mode-option { position: relative; display: grid; min-width: 0; min-height: 60px; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 9px; border: 0; border-radius: 9px; padding: 0 11px; background: transparent; color: var(--text-default); text-align: left; }
+.usbnet-mode-option:hover:not(:disabled) { background: var(--surface-soft); color: var(--text); opacity: 1; }
+.usbnet-index { display: grid; width: 22px; height: 22px; place-items: center; border-radius: 7px; background: var(--surface-soft); color: var(--muted); font-size: 9px; font-weight: 650; }
+.usbnet-copy { display: grid; min-width: 0; gap: 3px; }
+.usbnet-copy strong { overflow: hidden; color: inherit; font-size: 10px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
+.usbnet-copy small { overflow: hidden; color: var(--dim); font-size: 8px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+.usbnet-check { color: inherit; font-size: 9px; font-weight: 700; opacity: 0; }
+.usbnet-mode-option[aria-pressed="true"], .usbnet-mode-option[aria-pressed="true"]:hover { background: var(--text); color: var(--canvas); opacity: 1; }
+.usbnet-mode-option[aria-pressed="true"] .usbnet-index { background: color-mix(in srgb, var(--canvas) 14%, transparent); color: inherit; }
+.usbnet-mode-option[aria-pressed="true"] .usbnet-copy small { color: inherit; opacity: .58; }
+.usbnet-mode-option[aria-pressed="true"] .usbnet-check { opacity: 1; }
+.reboot-action { display: flex; min-width: 150px; min-height: 68px; align-items: center; justify-content: flex-start; gap: 10px; border-radius: 12px; padding: 0 15px; text-align: left; }
+.reboot-action > svg { width: 17px; height: 17px; flex: none; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+.reboot-action > span { display: grid; gap: 3px; }
+.reboot-action strong { color: inherit; font-size: 10px; font-weight: 600; }
+.reboot-action small { color: inherit; font-size: 8px; font-weight: 400; opacity: .68; }
 
 .terminal-panel { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: #090d11; }
 .terminal-toolbar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; min-height: 48px; padding: 6px 7px 6px 14px; border-bottom: 1px solid #252d35; }
@@ -421,7 +435,6 @@ body.modal-open { overflow: hidden; }
   :root { --sidebar-width: 204px; }
   .app-main { padding-right: 24px; padding-left: 24px; }
   .status-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .mode-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 760px) {
@@ -474,7 +487,9 @@ body.modal-open { overflow: hidden; }
   .phonebook-result { grid-template-columns: 1fr; }
   .profile-tools-grid { grid-template-columns: 1fr; }
   .profile-tools-grid #esim-runtime-section { grid-column: auto; }
-  .mode-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .usbnet-controls { flex-direction: column; }
+  .usbnet-selector { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reboot-action { width: 100%; }
 }
 
 @media (max-width: 430px) {
@@ -486,5 +501,4 @@ body.modal-open { overflow: hidden; }
   .status-grid > div { min-height: 68px; padding: 13px; }
   .status-grid > div.status-primary { min-height: 78px; }
   .status-grid strong { font-size: 14px; }
-  .mode-grid { grid-template-columns: 1fr; }
 }

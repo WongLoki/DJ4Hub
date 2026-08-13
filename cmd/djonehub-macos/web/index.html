@@ -223,12 +223,14 @@
 
         <div class="settings-section">
           <div class="section-heading"><div><h2>USB 网卡模式</h2><p>切换后通常需要重启模块。</p></div></div>
-          <div class="control-panel mode-grid">
-            <button id="usbnet-mode-0" class="secondary" type="button"><strong>模式 0</strong><small>短信 / 管理</small></button>
-            <button id="usbnet-mode-1" class="secondary" type="button"><strong>模式 1</strong><small>4G 网卡</small></button>
-            <button id="usbnet-mode-2" class="secondary" type="button"><strong>模式 2</strong><small>实验</small></button>
-            <button id="usbnet-mode-3" class="secondary" type="button"><strong>模式 3</strong><small>实验</small></button>
-            <button id="reboot-module" class="secondary danger" type="button"><strong>重启模块</strong><small>重新枚举 USB</small></button>
+          <div class="usbnet-controls">
+            <div class="usbnet-selector" role="group" aria-label="选择 USB 网卡模式">
+              <button id="usbnet-mode-0" class="usbnet-mode-option" type="button" aria-pressed="false"><span class="usbnet-index">0</span><span class="usbnet-copy"><strong>短信 / 管理</strong><small>管理通道</small></span><span class="usbnet-check" aria-hidden="true">✓</span></button>
+              <button id="usbnet-mode-1" class="usbnet-mode-option" type="button" aria-pressed="false"><span class="usbnet-index">1</span><span class="usbnet-copy"><strong>4G 网卡</strong><small>网络共享</small></span><span class="usbnet-check" aria-hidden="true">✓</span></button>
+              <button id="usbnet-mode-2" class="usbnet-mode-option" type="button" aria-pressed="false"><span class="usbnet-index">2</span><span class="usbnet-copy"><strong>实验模式</strong><small>高级配置</small></span><span class="usbnet-check" aria-hidden="true">✓</span></button>
+              <button id="usbnet-mode-3" class="usbnet-mode-option" type="button" aria-pressed="false"><span class="usbnet-index">3</span><span class="usbnet-copy"><strong>实验模式</strong><small>高级配置</small></span><span class="usbnet-check" aria-hidden="true">✓</span></button>
+            </div>
+            <button id="reboot-module" class="reboot-action danger" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7v4h-4M5 17v-4h4"/><path d="M7 8a6.5 6.5 0 0 1 10.5-1L19 10M5 14l1.5 2A6.5 6.5 0 0 0 17 16"/></svg><span><strong>重启模块</strong><small>重新枚举 USB</small></span></button>
           </div>
         </div>
 
