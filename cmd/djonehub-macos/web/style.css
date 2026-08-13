@@ -395,8 +395,8 @@ input:focus { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); 
 .terminal-panel { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: #090d11; }
 .terminal-toolbar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; min-height: 48px; padding: 6px 7px 6px 14px; border-bottom: 1px solid #252d35; }
 .terminal-prompt { color: #72bed8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 16px; }
-.terminal-toolbar input { height: 34px; border: 0; padding: 0; background: transparent; color: #d6dee4; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.terminal-toolbar input:focus { border: 0; }
+.terminal-toolbar input { height: 34px; border: 0; border-radius: 0; padding: 0; outline: 0; background: transparent; color: #d6dee4; caret-color: #72bed8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; box-shadow: none; }
+.terminal-toolbar input:focus, .terminal-toolbar input:focus-visible { border: 0; outline: 0; box-shadow: none; }
 .terminal-toolbar button { border-color: #dce5e9; background: #dce5e9; color: #111820; }
 pre { min-height: 280px; margin: 0; padding: 17px; overflow: auto; color: #9fb0bb; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; line-height: 1.65; }
 

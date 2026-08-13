@@ -1038,6 +1038,13 @@ document.querySelectorAll(".tab").forEach((tab) => {
     if (tab.dataset.view === "esim") loadESIM();
     else setESIMHealthPolling(false);
     if (tab.dataset.view === "network") loadNetwork();
+    if (tab.dataset.view === "at") {
+      requestAnimationFrame(() => {
+        const input = $("#at-command");
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      });
+    }
   });
 });
 
