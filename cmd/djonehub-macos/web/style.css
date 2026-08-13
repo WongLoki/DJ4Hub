@@ -246,6 +246,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .risk-badge { border-radius: 999px; padding: 5px 8px; background: var(--warning-soft); color: var(--warning); font-size: 9px; }
 
 .surface-panel { border-radius: var(--radius-lg); padding: 15px; background: var(--surface-soft); }
+.compose-panel { padding-right: 0; padding-left: 0; background: transparent; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
 .panel-heading > div, .fold-panel > summary > span { display: flex; align-items: center; gap: 8px; }
 .panel-heading strong, .fold-panel summary strong { color: var(--text-default); font-size: 11px; font-weight: 550; }
