@@ -268,7 +268,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .recipient-field input { height: 46px; border: 0; border-radius: 0; padding: 0; background: transparent; font-size: 11px; }
 .recipient-field input:focus { border: 0; outline: 0; }
 .message-field { display: block; }
-.message-field textarea { display: block; width: 100%; min-height: 92px; resize: vertical; border: 0; padding: 15px 14px 8px; outline: 0; background: transparent; color: var(--text-default); font-size: 11px; line-height: 1.55; }
+.message-field textarea { display: block; width: 100%; min-height: 92px; resize: none; border: 0; padding: 15px 14px 8px; outline: 0; background: transparent; color: var(--text-default); font-size: 11px; line-height: 1.55; }
 .message-field textarea::placeholder { color: var(--dim); }
 .message-field textarea:focus { outline: 0; }
 .composer-footer { display: flex; min-height: 46px; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 8px 8px 14px; }
