@@ -89,10 +89,10 @@
 * { box-sizing: border-box; }
 html { min-width: 320px; background: var(--canvas); }
 body { min-width: 320px; min-height: 100vh; margin: 0; background: var(--canvas); color: var(--text); }
-button, input { font: inherit; }
+button, input, textarea { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .48; }
-button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 48%, transparent); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 48%, transparent); outline-offset: 2px; }
 svg { display: block; }
 
 .app-shell { min-height: 100vh; }
@@ -260,6 +260,22 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .panel-heading small, .fold-panel summary small { color: var(--dim); font-size: 9px; font-weight: 400; }
 .panel-icon { display: inline-grid; width: 20px; height: 20px; place-items: center; border-radius: 6px; background: var(--surface-active); color: var(--accent); font-size: 11px; font-style: normal; }
 
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; }
+.message-composer { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); transition: border-color 140ms ease, box-shadow 140ms ease; }
+.message-composer:focus-within { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 7%, transparent); }
+.recipient-field { display: grid; min-height: 47px; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; border-bottom: 1px solid var(--hairline); padding: 0 14px; }
+.recipient-field > span { color: var(--text-default); font-size: 10px; font-weight: 550; }
+.recipient-field input { height: 46px; border: 0; border-radius: 0; padding: 0; background: transparent; font-size: 11px; }
+.recipient-field input:focus { border: 0; outline: 0; }
+.message-field { display: block; }
+.message-field textarea { display: block; width: 100%; min-height: 92px; resize: vertical; border: 0; padding: 15px 14px 8px; outline: 0; background: transparent; color: var(--text-default); font-size: 11px; line-height: 1.55; }
+.message-field textarea::placeholder { color: var(--dim); }
+.message-field textarea:focus { outline: 0; }
+.composer-footer { display: flex; min-height: 46px; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 8px 8px 14px; }
+.message-counter { color: var(--dim); font-size: 9px; font-variant-numeric: tabular-nums; }
+.composer-send { display: flex; min-width: 68px; min-height: 34px; align-items: center; justify-content: center; gap: 6px; padding: 0 11px 0 14px; }
+.composer-send svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+
 .toolbar { display: grid; grid-template-columns: minmax(160px, .36fr) 1fr auto; gap: 8px; }
 label { display: grid; gap: 5px; }
 label > span { color: var(--muted); font-size: 9px; }
@@ -404,6 +420,9 @@ body.modal-open { overflow: hidden; }
   .view { margin-top: 32px; }
   .toolbar { grid-template-columns: 1fr; }
   .toolbar button { justify-self: stretch; }
+  .message-field textarea { min-height: 112px; }
+  .composer-send { min-width: 36px; width: 36px; padding: 0; }
+  .composer-send-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
   .section-heading, .view-intro { align-items: flex-start; flex-direction: column; }
   .view-intro-actions { width: 100%; justify-content: space-between; }
   .network-status { max-width: min(65%, 280px); text-align: left; }

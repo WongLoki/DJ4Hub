@@ -121,11 +121,23 @@
           <div class="view-meta"><span>自动轮询</span><strong>5s</strong></div>
         </div>
         <div class="surface-panel compose-panel">
-          <div class="panel-heading"><div><span class="panel-icon" aria-hidden="true">＋</span><strong>发送新短信</strong></div><small>支持长短信自动分片</small></div>
-          <form id="send-form" class="toolbar">
-            <label><span>接收号码</span><input id="phone" type="tel" placeholder="+86 138 0000 0000" autocomplete="tel" required></label>
-            <label><span>短信内容</span><input id="message" type="text" placeholder="输入短信内容" maxlength="1000" required></label>
-            <button type="submit">发送</button>
+          <div class="panel-heading"><div><span class="panel-icon" aria-hidden="true">＋</span><strong>新消息</strong></div><small>支持长短信自动分片</small></div>
+          <form id="send-form" class="message-composer">
+            <label class="recipient-field" for="phone">
+              <span>收件人</span>
+              <input id="phone" type="tel" placeholder="输入手机号" autocomplete="tel" required>
+            </label>
+            <label class="message-field" for="message">
+              <span class="sr-only">短信内容</span>
+              <textarea id="message" placeholder="输入短信内容…" maxlength="1000" required></textarea>
+            </label>
+            <div class="composer-footer">
+              <span id="message-counter" class="message-counter" aria-live="polite">0 字 · 自动分片</span>
+              <button class="composer-send" type="submit" aria-label="发送短信">
+                <span class="composer-send-label">发送</span>
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 14V5m0 0L6.5 8.5M10 5l3.5 3.5"/></svg>
+              </button>
+            </div>
           </form>
         </div>
         <div class="section-heading">

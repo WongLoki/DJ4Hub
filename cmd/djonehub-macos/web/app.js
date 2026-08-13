@@ -1025,6 +1025,14 @@ $("#esim-download-form").addEventListener("submit", async (event) => {
   } catch (error) { status.textContent = `下载失败：${error.message}`; notice(error.message); } finally { button.disabled = false; }
 });
 
+const messageInput = $("#message");
+const messageCounter = $("#message-counter");
+const updateMessageCounter = () => {
+  messageCounter.textContent = `${messageInput.value.length} 字 · 自动分片`;
+};
+messageInput.addEventListener("input", updateMessageCounter);
+updateMessageCounter();
+
 $("#send-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = event.submitter;
@@ -1036,7 +1044,8 @@ $("#send-form").addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify({ phone: $("#phone").value, message: $("#message").value }),
     });
-    $("#message").value = "";
+    messageInput.value = "";
+    updateMessageCounter();
     const segments = Number(result.segments || 1);
     notice(segments > 1 ? `短信已发送（${segments} 个分片）` : "短信已发送");
   } catch (error) {
