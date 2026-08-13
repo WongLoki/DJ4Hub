@@ -259,7 +259,10 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .activity-route small { color: var(--dim); font-size: 8px; }
 .activity-route strong { overflow: hidden; color: var(--text-default); font-size: 10px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
 .activity-route > i { color: var(--dim); font-size: 11px; font-style: normal; }
-.activity-list { border-top: 1px solid var(--hairline); }
+.activity-list { border-top: 1px solid var(--hairline); scrollbar-color: var(--line) transparent; scrollbar-width: thin; }
+.activity-list::-webkit-scrollbar { width: 6px; }
+.activity-list::-webkit-scrollbar-track { background: transparent; }
+.activity-list::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--line); }
 .activity-list.empty { display: grid; min-height: 76px; place-items: center; color: var(--dim); font-size: 9px; }
 .activity-row { display: grid; min-height: 49px; grid-template-columns: minmax(120px, .8fr) minmax(180px, 1.5fr) auto auto; align-items: center; gap: 14px; border-bottom: 1px solid var(--hairline); padding: 8px 14px; }
 .activity-row:last-child { border-bottom: 0; }
@@ -460,6 +463,15 @@ body.modal-open { overflow: hidden; }
 
 #notice { position: fixed; right: 18px; bottom: 18px; z-index: 60; max-width: min(380px, calc(100% - 36px)); border: 1px solid var(--line); border-radius: 11px; padding: 10px 12px; background: var(--surface-raised); color: var(--text-default); font-size: 10px; opacity: 0; pointer-events: none; transform: translateY(6px); transition: opacity 150ms ease, transform 150ms ease; box-shadow: 0 12px 36px rgba(0, 0, 0, .18); }
 #notice.show { opacity: 1; transform: translateY(0); }
+
+@media (min-width: 761px) {
+  .app-main:has(#overview.active) { height: 100vh; min-height: 0; overflow: hidden; padding-bottom: 18px; }
+  .view.overview.active { display: flex; width: 100%; height: calc(100vh - 168px); min-height: 0; flex-direction: column; }
+  .activity-section { display: flex; min-height: 0; flex: 1; flex-direction: column; }
+  .activity-heading, .activity-route, .activity-note { flex: none; }
+  .activity-panel { display: flex; min-height: 0; flex: 1; flex-direction: column; }
+  .activity-list { min-height: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; }
+}
 
 @media (max-width: 980px) {
   :root { --sidebar-width: 204px; }
