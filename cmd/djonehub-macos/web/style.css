@@ -244,6 +244,9 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .view-intro-actions { display: flex; flex: none; align-items: center; gap: 12px; }
 .network-status { display: flex; max-width: 280px; align-items: center; gap: 7px; margin: 0 !important; color: var(--muted) !important; font-size: 9px !important; text-align: right; }
 .network-status::before { width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--positive); content: ""; }
+.esim-intro-actions { max-width: min(52%, 500px); }
+.esim-status { display: flex; min-width: 0; align-items: center; gap: 7px; margin: 0 !important; overflow: hidden; color: var(--muted) !important; font-size: 9px !important; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.esim-status::before { width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--warning); content: ""; }
 .view-meta { display: grid; flex: none; gap: 2px; text-align: right; }
 .view-meta span { color: var(--dim); font-size: 8px; }
 .view-meta strong { color: var(--text-default); font-size: 11px; font-weight: 550; }
@@ -305,9 +308,13 @@ input:focus { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); 
 .profile-panel-heading { min-height: 65px !important; align-items: center !important; }
 .profile-panel-title { display: grid; gap: 5px; }
 .profile-panel-title strong { color: var(--text); font-size: 14px; font-weight: 550; }
-.profile-panel-heading > small { margin-left: auto; }
-.profile-panel-content { padding: 2px 12px 12px; }
-.profile-panel .list { margin-top: 12px; }
+.profile-panel-heading > small { max-width: 260px; margin-left: auto; color: var(--dim); font-size: 9px; font-weight: 400; line-height: 1.4; text-align: right; }
+.profile-panel-content { padding: 0 12px 12px; }
+.profile-tools-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-top: 10px; }
+.profile-tools-grid .fold-panel { margin-top: 0; }
+.profile-tools-grid #esim-runtime-section { grid-column: 1 / -1; }
+.profile-panel .list { margin-top: 8px; }
+.profile-panel .list.empty { min-height: 78px; border-style: dashed; background: var(--surface-soft); }
 .profile-panel .list > .item { background: var(--surface); }
 .esim-profile.active { background: var(--positive-soft) !important; }
 .profile-description { min-width: 0; }
@@ -400,6 +407,8 @@ body.modal-open { overflow: hidden; }
   .section-heading, .view-intro { align-items: flex-start; flex-direction: column; }
   .view-intro-actions { width: 100%; justify-content: space-between; }
   .network-status { max-width: min(65%, 280px); text-align: left; }
+  .esim-intro-actions { max-width: none; }
+  .esim-status { max-width: 65%; text-align: left; }
   .view-intro > button, .view-intro > .risk-badge { align-self: flex-start; }
   .view-meta { display: none; }
   .heading-actions { flex-wrap: wrap; }
@@ -409,6 +418,8 @@ body.modal-open { overflow: hidden; }
   .esim-download-grid { grid-template-columns: 1fr; }
   .esim-download-grid button { grid-column: auto; justify-self: stretch; }
   .phonebook-result { grid-template-columns: 1fr; }
+  .profile-tools-grid { grid-template-columns: 1fr; }
+  .profile-tools-grid #esim-runtime-section { grid-column: auto; }
   .mode-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 

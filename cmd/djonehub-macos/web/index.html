@@ -141,9 +141,11 @@
       <section id="esim" class="view">
         <div class="view-intro">
           <div><span class="section-kicker">EUICC</span><h2>eSIM / 卡片</h2><p>管理卡内 Profile，核对模块实际接管状态。</p></div>
-          <button id="refresh-esim" class="secondary" type="button">刷新卡片</button>
+          <div class="view-intro-actions esim-intro-actions">
+            <p id="esim-status" class="esim-status">等待读取卡片</p>
+            <button id="refresh-esim" class="secondary" type="button">刷新卡片</button>
+          </div>
         </div>
-        <p id="esim-status" class="inline-status attention">仅在 SIM 卡槽中插入 eUICC/eSIM 卡片时使用；普通实体 SIM 可以忽略。</p>
         <details id="esim-download-section" class="fold-panel esim-download">
           <summary><span><span class="panel-icon" aria-hidden="true">↓</span><strong>下载新 Profile</strong></span><small>SM-DP+ 激活信息</small></summary>
           <form id="esim-download-form" class="esim-download-grid">
@@ -160,22 +162,24 @@
         <details id="esim-profile-panel" class="profile-panel" open>
           <summary class="profile-panel-heading"><span class="profile-panel-title"><span class="section-kicker">INSTALLED PROFILES</span><strong>已安装 Profile</strong></span><small>启用、改名或删除卡内 Profile</small></summary>
           <div class="profile-panel-content">
-            <details class="fold-panel">
-              <summary><span><span class="panel-icon" aria-hidden="true">i</span><strong>卡片概览</strong></span><small>卡类型、固件、EID</small></summary>
-              <div id="esim-chip" class="diagnostic-grid" hidden></div>
-            </details>
-            <details id="esim-runtime-section" class="fold-panel" hidden>
-              <summary><span><span class="panel-icon" aria-hidden="true">●</span><strong>当前运行状态</strong></span><small>自动刷新</small></summary>
-              <div id="esim-runtime" class="diagnostic-grid"></div>
-            </details>
-            <details id="esim-phonebook-section" class="fold-panel" hidden>
-              <summary><span><span class="panel-icon" aria-hidden="true">⌁</span><strong>卡片通讯录兼容性</strong></span><small>只读检测</small></summary>
-              <div class="phonebook-probe">
-                <p id="esim-phonebook-status" class="inline-status">检测当前 Profile 是否支持卡内通讯录；不会写入联系人。</p>
-                <button id="probe-esim-phonebook" class="secondary compact" type="button">检测当前卡片</button>
-                <div id="esim-phonebook-result" class="phonebook-result" hidden></div>
-              </div>
-            </details>
+            <div class="profile-tools-grid">
+              <details class="fold-panel">
+                <summary><span><span class="panel-icon" aria-hidden="true">i</span><strong>卡片概览</strong></span><small>卡类型、固件、EID</small></summary>
+                <div id="esim-chip" class="diagnostic-grid" hidden></div>
+              </details>
+              <details id="esim-runtime-section" class="fold-panel" hidden>
+                <summary><span><span class="panel-icon" aria-hidden="true">●</span><strong>当前运行状态</strong></span><small>自动刷新</small></summary>
+                <div id="esim-runtime" class="diagnostic-grid"></div>
+              </details>
+              <details id="esim-phonebook-section" class="fold-panel" hidden>
+                <summary><span><span class="panel-icon" aria-hidden="true">⌁</span><strong>通讯录兼容性</strong></span><small>只读检测</small></summary>
+                <div class="phonebook-probe">
+                  <p id="esim-phonebook-status" class="inline-status">检测当前 Profile 是否支持卡内通讯录；不会写入联系人。</p>
+                  <button id="probe-esim-phonebook" class="secondary compact" type="button">检测当前卡片</button>
+                  <div id="esim-phonebook-result" class="phonebook-result" hidden></div>
+                </div>
+              </details>
+            </div>
             <div id="esim-list" class="list empty">尚未读取 eUICC/eSIM 卡片</div>
           </div>
         </details>
