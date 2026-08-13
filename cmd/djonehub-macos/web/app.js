@@ -1105,15 +1105,24 @@ $("#send-form").addEventListener("submit", async (event) => {
 $("#at-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const output = $("#at-output");
-  output.textContent = "执行中";
+  const input = $("#at-command");
+  const command = input.value.trim();
+  if (!command) {
+    input.value = "";
+    input.focus();
+    return;
+  }
+  output.textContent = `› ${command}\n\n执行中...`;
+  input.value = "";
+  input.focus();
   try {
     const result = await api("/api/at", {
       method: "POST",
-      body: JSON.stringify({ command: $("#at-command").value }),
+      body: JSON.stringify({ command }),
     });
-    output.textContent = result.response || "OK";
+    output.textContent = `› ${command}\n\n${result.response || "OK"}`;
   } catch (error) {
-    output.textContent = error.message;
+    output.textContent = `› ${command}\n\n${error.message}`;
   }
 });
 
