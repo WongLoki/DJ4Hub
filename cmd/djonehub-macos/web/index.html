@@ -184,9 +184,11 @@
       <section id="network" class="view">
         <div class="view-intro">
           <div><span class="section-kicker">CONNECTIVITY</span><h2>网络</h2><p>检查蜂窝注册、USB 网卡与默认出口。</p></div>
-          <button id="refresh-network" class="secondary" type="button">刷新诊断</button>
+          <div class="view-intro-actions">
+            <p id="network-status" class="network-status">尚未读取网络状态</p>
+            <button id="refresh-network" class="secondary" type="button">刷新诊断</button>
+          </div>
         </div>
-        <p id="network-status" class="inline-status attention">尚未读取网络状态</p>
         <div id="network-grid" class="diagnostic-grid"></div>
 
         <div class="settings-section">

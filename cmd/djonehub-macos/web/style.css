@@ -237,6 +237,9 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .view-intro > div:first-child { min-width: 0; }
 .view-intro h2 { margin: 5px 0 0; color: var(--text); font-size: 19px; font-weight: 550; letter-spacing: -.025em; }
 .view-intro p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+.view-intro-actions { display: flex; flex: none; align-items: center; gap: 12px; }
+.network-status { display: flex; max-width: 280px; align-items: center; gap: 7px; margin: 0 !important; color: var(--muted) !important; font-size: 9px !important; text-align: right; }
+.network-status::before { width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--positive); content: ""; }
 .view-meta { display: grid; flex: none; gap: 2px; text-align: right; }
 .view-meta span { color: var(--dim); font-size: 8px; }
 .view-meta strong { color: var(--text-default); font-size: 11px; font-weight: 550; }
@@ -397,6 +400,8 @@ body.modal-open { overflow: hidden; }
   .toolbar { grid-template-columns: 1fr; }
   .toolbar button { justify-self: stretch; }
   .section-heading, .view-intro { align-items: flex-start; flex-direction: column; }
+  .view-intro-actions { width: 100%; justify-content: space-between; }
+  .network-status { max-width: min(65%, 280px); text-align: left; }
   .view-intro > button, .view-intro > .risk-badge { align-self: flex-start; }
   .view-meta { display: none; }
   .heading-actions { flex-wrap: wrap; }
