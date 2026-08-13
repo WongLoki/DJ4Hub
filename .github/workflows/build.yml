@@ -19,10 +19,10 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -56,7 +56,7 @@ jobs:
           go test -mod=readonly ./...
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: DJI-4G-Connect-macOS-arm64-${{ steps.version.outputs.value }}
           path: |
@@ -74,7 +74,7 @@ jobs:
 
     steps:
       - name: Download packaged app
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: DJI-4G-Connect-macOS-arm64-*
           path: dist
