@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/WongLoki/dj-4g-hub/internal/modem"
+	"github.com/WongLoki/DJ4Hub/internal/modem"
 )
 
 type USSDResult struct {

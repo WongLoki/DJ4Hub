@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/WongLoki/dj-4g-hub/internal/apduarbiter"
-	"github.com/WongLoki/dj-4g-hub/internal/simaid"
+	"github.com/WongLoki/DJ4Hub/internal/apduarbiter"
+	"github.com/WongLoki/DJ4Hub/internal/simaid"
 )
 
 func (m *Manager) QueryIMEI() (string, error) {

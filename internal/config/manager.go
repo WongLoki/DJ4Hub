@@ -3,7 +3,7 @@ package config
 import (
 	"sync"
 
-	"github.com/WongLoki/dj-4g-hub/pkg/logger"
+	"github.com/WongLoki/DJ4Hub/pkg/logger"
 )
 
 var (

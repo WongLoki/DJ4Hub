@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/WongLoki/dj-4g-hub/pkg/mbim"
+	"github.com/WongLoki/DJ4Hub/pkg/mbim"
 )
 
 // CalculateAKA computes AKA via the MBIM Auth service.

@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/WongLoki/dj-4g-hub/internal/backend"
+	"github.com/WongLoki/DJ4Hub/internal/backend"
 	"github.com/damonto/euicc-go/bertlv"
 	"github.com/damonto/euicc-go/bertlv/primitive"
 	"github.com/damonto/euicc-go/driver"

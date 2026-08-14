@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/WongLoki/dj-4g-hub/pkg/mbim"
+	"github.com/WongLoki/DJ4Hub/pkg/mbim"
 )
 
 func mbimResetCapableForTest() *mbim.Capabilities {

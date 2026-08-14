@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/WongLoki/dj-4g-hub/pkg/mbim"
-	"github.com/WongLoki/dj-4g-hub/pkg/smscodec"
+	"github.com/WongLoki/DJ4Hub/pkg/mbim"
+	"github.com/WongLoki/DJ4Hub/pkg/smscodec"
 	qmimanager "github.com/iniwex5/quectel-qmi-go/pkg/manager"
 	"github.com/warthog618/sms/encoding/tpdu"
 )

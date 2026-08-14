@@ -78,4 +78,4 @@ go test -mod=mod ./...
 
 ## 模块与来源
 
-当前 Go module 路径为 `github.com/WongLoki/dj-4g-hub`。仓库作为独立项目维护，但从 DJOneHub、VoHive 和第三方模块演进而来的代码仍保留其原始许可证与声明，详见根目录 `LICENSE` 和 `THIRD_PARTY_NOTICES.md`。
+当前 Go module 路径为 `github.com/WongLoki/DJ4Hub`。仓库作为独立项目维护，但从 DJOneHub、VoHive 和第三方模块演进而来的代码仍保留其原始许可证与声明，详见根目录 `LICENSE` 和 `THIRD_PARTY_NOTICES.md`。

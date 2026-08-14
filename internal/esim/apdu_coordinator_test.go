@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/WongLoki/dj-4g-hub/internal/apduarbiter"
+	"github.com/WongLoki/DJ4Hub/internal/apduarbiter"
 )
 
 func TestAPDUCoordinatorChanMuIsStablePerChannel(t *testing.T) {

@@ -29,7 +29,7 @@ DJ 4G Hub 最初从 [ZenGeekLabs/DJOneHub](https://github.com/ZenGeekLabs/DJOneH
 克隆时需要同时取回子仓库：
 
 ```sh
-git clone --recurse-submodules https://github.com/WongLoki/dj-4g-hub.git
+git clone --recurse-submodules https://github.com/WongLoki/DJ4Hub.git
 ```
 
 已经克隆主仓库时：
@@ -87,7 +87,7 @@ git submodule update --init --recursive
 
 ## 下载与安装
 
-从项目 [Releases](https://github.com/WongLoki/dj-4g-hub/releases) 下载名称包含 `DJ-4G-Hub-macOS-arm64` 的 ZIP，并按需使用同名 `.sha256` 校验文件。只需要一次性激活工具时，请前往 [4G Connect Releases](https://github.com/WongLoki/4G-Connect/releases)。
+从项目 [Releases](https://github.com/WongLoki/DJ4Hub/releases) 下载名称包含 `DJ-4G-Hub-macOS-arm64` 的 ZIP，并按需使用同名 `.sha256` 校验文件。只需要一次性激活工具时，请前往 [4G Connect Releases](https://github.com/WongLoki/4G-Connect/releases)。
 
 ```sh
 shasum -a 256 DJ-4G-Hub-*.zip

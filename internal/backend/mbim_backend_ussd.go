@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/WongLoki/dj-4g-hub/pkg/mbim"
+	"github.com/WongLoki/DJ4Hub/pkg/mbim"
 )
 
 func (b *MBIMBackend) ExecuteUSSD(ctx context.Context, command string, timeout time.Duration) (*USSDResult, error) {

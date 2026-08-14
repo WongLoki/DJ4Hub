@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/WongLoki/dj-4g-hub/internal/modem"
-	"github.com/WongLoki/dj-4g-hub/pkg/smscodec"
+	"github.com/WongLoki/DJ4Hub/internal/modem"
+	"github.com/WongLoki/DJ4Hub/pkg/smscodec"
 	qmimanager "github.com/iniwex5/quectel-qmi-go/pkg/manager"
 	"github.com/iniwex5/quectel-qmi-go/pkg/qmi"
 	"github.com/warthog618/sms/encoding/tpdu"

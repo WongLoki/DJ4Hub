@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/WongLoki/dj-4g-hub/pkg/mbim"
+	"github.com/WongLoki/DJ4Hub/pkg/mbim"
 	"github.com/iniwex5/quectel-qmi-go/pkg/manager"
 )
 

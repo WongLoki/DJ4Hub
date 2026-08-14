@@ -1,4 +1,4 @@
-module github.com/WongLoki/dj-4g-hub
+module github.com/WongLoki/DJ4Hub
 
 go 1.26.3
 

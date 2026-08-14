@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/WongLoki/dj-4g-hub/internal/apduarbiter"
-	"github.com/WongLoki/dj-4g-hub/pkg/logger"
+	"github.com/WongLoki/DJ4Hub/internal/apduarbiter"
+	"github.com/WongLoki/DJ4Hub/pkg/logger"
 	qmiq "github.com/iniwex5/quectel-qmi-go/pkg/qmi"
 )
 

@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/WongLoki/dj-4g-hub/internal/modem"
-	"github.com/WongLoki/dj-4g-hub/pkg/mbim"
+	"github.com/WongLoki/DJ4Hub/internal/modem"
+	"github.com/WongLoki/DJ4Hub/pkg/mbim"
 	"github.com/iniwex5/quectel-qmi-go/pkg/manager"
 )
 

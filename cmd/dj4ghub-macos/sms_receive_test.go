@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/WongLoki/dj-4g-hub/pkg/smscodec"
+	"github.com/WongLoki/DJ4Hub/pkg/smscodec"
 )
 
 func TestUSBLongSMSReassembly(t *testing.T) {

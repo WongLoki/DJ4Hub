@@ -16,10 +16,10 @@ import (
 	"time"
 	"unicode/utf16"
 
-	"github.com/WongLoki/dj-4g-hub/internal/apduarbiter"
-	"github.com/WongLoki/dj-4g-hub/internal/config"
-	"github.com/WongLoki/dj-4g-hub/pkg/logger"
-	"github.com/WongLoki/dj-4g-hub/pkg/smscodec"
+	"github.com/WongLoki/DJ4Hub/internal/apduarbiter"
+	"github.com/WongLoki/DJ4Hub/internal/config"
+	"github.com/WongLoki/DJ4Hub/pkg/logger"
+	"github.com/WongLoki/DJ4Hub/pkg/smscodec"
 	"github.com/warthog618/sms/encoding/gsm7"
 
 	"go.bug.st/serial"

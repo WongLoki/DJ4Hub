@@ -27,11 +27,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/WongLoki/dj-4g-hub/internal/backend"
-	"github.com/WongLoki/dj-4g-hub/internal/config"
-	"github.com/WongLoki/dj-4g-hub/internal/esim"
-	"github.com/WongLoki/dj-4g-hub/internal/modem"
-	"github.com/WongLoki/dj-4g-hub/pkg/smscodec"
+	"github.com/WongLoki/DJ4Hub/internal/backend"
+	"github.com/WongLoki/DJ4Hub/internal/config"
+	"github.com/WongLoki/DJ4Hub/internal/esim"
+	"github.com/WongLoki/DJ4Hub/internal/modem"
+	"github.com/WongLoki/DJ4Hub/pkg/smscodec"
 	"github.com/damonto/euicc-go/driver"
 )
 

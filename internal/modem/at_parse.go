@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/WongLoki/dj-4g-hub/pkg/smscodec"
+	"github.com/WongLoki/DJ4Hub/pkg/smscodec"
 )
 
 func splitLines(resp string) []string {

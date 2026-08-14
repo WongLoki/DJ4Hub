@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/WongLoki/dj-4g-hub/internal/modem"
-	"github.com/WongLoki/dj-4g-hub/pkg/logger"
+	"github.com/WongLoki/DJ4Hub/internal/modem"
+	"github.com/WongLoki/DJ4Hub/pkg/logger"
 )
 
 // 后端模式常量

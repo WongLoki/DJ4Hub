@@ -3,7 +3,7 @@ package backend
 import (
 	"context"
 
-	"github.com/WongLoki/dj-4g-hub/pkg/mbim"
+	"github.com/WongLoki/DJ4Hub/pkg/mbim"
 )
 
 func (b *MBIMBackend) ScanOperators(ctx context.Context) ([]OperatorCandidate, error) {

@@ -17,10 +17,10 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
-	"github.com/WongLoki/dj-4g-hub/internal/apduarbiter"
-	backendpkg "github.com/WongLoki/dj-4g-hub/internal/backend"
-	"github.com/WongLoki/dj-4g-hub/internal/modem"
-	"github.com/WongLoki/dj-4g-hub/pkg/logger"
+	"github.com/WongLoki/DJ4Hub/internal/apduarbiter"
+	backendpkg "github.com/WongLoki/DJ4Hub/internal/backend"
+	"github.com/WongLoki/DJ4Hub/internal/modem"
+	"github.com/WongLoki/DJ4Hub/pkg/logger"
 	"github.com/damonto/euicc-go/bertlv"
 	"github.com/damonto/euicc-go/driver"
 	"github.com/damonto/euicc-go/lpa"

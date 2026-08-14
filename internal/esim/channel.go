@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/WongLoki/dj-4g-hub/internal/modem"
+	"github.com/WongLoki/DJ4Hub/internal/modem"
 )
 
 // ModemChannel 实现 euicc-go 的 driver.SmartCardChannel 接口

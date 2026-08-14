@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/WongLoki/dj-4g-hub/pkg/logger"
+	"github.com/WongLoki/DJ4Hub/pkg/logger"
 	"github.com/iniwex5/quectel-qmi-go/pkg/qmi"
 )
 

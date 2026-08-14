@@ -3,8 +3,8 @@ package esim
 import (
 	"fmt"
 
-	"github.com/WongLoki/dj-4g-hub/internal/esim/pki"
-	"github.com/WongLoki/dj-4g-hub/pkg/logger"
+	"github.com/WongLoki/DJ4Hub/internal/esim/pki"
+	"github.com/WongLoki/DJ4Hub/pkg/logger"
 	"github.com/damonto/euicc-go/bertlv"
 	"github.com/damonto/euicc-go/bertlv/primitive"
 	"github.com/damonto/euicc-go/lpa"
