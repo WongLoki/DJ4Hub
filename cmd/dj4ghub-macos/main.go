@@ -1529,9 +1529,6 @@ func (a *app) networkActivity(w http.ResponseWriter, _ *http.Request) {
 		right := snapshot.Connections[j].RXBytes + snapshot.Connections[j].TXBytes
 		return left > right
 	})
-	if len(snapshot.Connections) > 8 {
-		snapshot.Connections = snapshot.Connections[:8]
-	}
 	writeJSON(w, http.StatusOK, snapshot)
 }
 
