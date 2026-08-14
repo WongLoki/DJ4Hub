@@ -11,6 +11,27 @@ DJ 4G Hub 是一个本地优先的 macOS 设备控制台，支持兼容的 **DJI
 > [!IMPORTANT]
 > DJ 4G Hub 是独立开发的非官方开源项目，未获得 DJI 的授权、赞助或认可，与 DJI、Quectel、运营商或 eSIM 卡片厂商不存在隶属或合作关系。DJI 及相关产品名称是其各自权利人的商标，仅用于说明兼容性。
 
+## 界面预览
+
+<p align="center">
+  <img src="docs/images/dj4hub-console-overview-light.png" width="100%" alt="DJ 4G Hub 浅色主题设备概览与联网活动">
+</p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/dj4hub-console-network-light.png" width="100%" alt="DJ 4G Hub 网络诊断与 USB 网卡模式">
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/dj4hub-console-at-light.png" width="100%" alt="DJ 4G Hub AT 调试控制台">
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><sub>网络诊断与 USB 网卡模式</sub></td>
+    <td align="center"><sub>AT 调试控制台</sub></td>
+  </tr>
+</table>
+
 ## 为什么是一个新项目
 
 DJ 4G Hub 最初从 [ZenGeekLabs/DJOneHub](https://github.com/ZenGeekLabs/DJOneHub) 的代码与实践出发，也使用了其上游 [iniwex5/vohive](https://github.com/iniwex5/vohive) 的部分基础能力。随着 macOS 端持续开发，本项目已经重新设计了产品界面、设备工作流、网络诊断和发行方式，因此以独立项目继续维护。
