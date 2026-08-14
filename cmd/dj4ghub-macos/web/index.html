@@ -27,13 +27,13 @@
       </div>
 
       <div class="sidebar-device-stack">
-        <div class="device-presence">
+        <div id="sidebar-device" class="device-presence is-offline">
           <span class="presence-light" aria-hidden="true"></span>
           <div>
             <small>本地设备</small>
-            <strong>兼容 4G 模块</strong>
+            <strong id="sidebar-device-name">等待设备</strong>
           </div>
-          <span class="presence-state">USB</span>
+          <span id="sidebar-device-state" class="presence-state">未连接</span>
         </div>
         <div id="sidebar-connection" class="sidebar-connection" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17.5h14M7 14l3-3 2.5 2 4.5-5"/><path d="M14 8h3v3"/></svg>
@@ -91,7 +91,7 @@
           <div class="mobile-brand"><img class="brand-icon mini" src="/app-icon.png" alt="">DJ 4G Hub</div>
           <span class="page-kicker">DEVICE WORKSPACE</span>
           <h1>设备控制台</h1>
-          <p id="device-summary">正在连接兼容的 4G 模块</p>
+          <p id="device-summary">正在连接 4G 模块</p>
         </div>
         <div class="header-actions">
           <span id="header-device-state" class="header-device-state" role="status"><i aria-hidden="true"></i><span>正在连接</span></span>

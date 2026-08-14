@@ -130,10 +130,12 @@ svg { display: block; }
   background: var(--surface);
 }
 .presence-light { width: 7px; height: 7px; border-radius: 50%; background: var(--positive); box-shadow: 0 0 0 4px color-mix(in srgb, var(--positive) 12%, transparent); }
+.device-presence.is-offline .presence-light { background: var(--dim); box-shadow: 0 0 0 4px color-mix(in srgb, var(--dim) 10%, transparent); }
 .device-presence > div { display: grid; min-width: 0; gap: 2px; }
 .device-presence small { color: var(--dim); font-size: 9px; letter-spacing: .04em; }
 .device-presence strong { overflow: hidden; color: var(--text-default); font-size: 11px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
 .presence-state { border-radius: 999px; padding: 3px 6px; background: var(--positive-soft); color: var(--positive); font-size: 8px; font-weight: 700; letter-spacing: .06em; }
+.device-presence.is-offline .presence-state { background: var(--surface-soft); color: var(--dim); }
 .sidebar-connection { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; border-radius: 10px; padding: 9px 10px; background: var(--surface-soft); }
 .sidebar-connection[hidden] { display: none; }
 .sidebar-connection > svg { width: 15px; height: 15px; fill: none; stroke: var(--positive); stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }

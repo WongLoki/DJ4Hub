@@ -151,7 +151,7 @@ async function copySMSCode(code) {
 function renderHardwareDetails(status) {
   const panel = $("#hardware-details");
   const device = status.usb_device;
-  if (!device && !status.discovery_error) {
+  if (!device) {
     panel.hidden = true;
     panel.replaceChildren();
     return;
@@ -182,6 +182,15 @@ function renderHardwareDetails(status) {
 
   panel.hidden = false;
   panel.replaceChildren(title, detail, hint);
+}
+
+function setSidebarDeviceState(connected, device = null) {
+  const panel = $("#sidebar-device");
+  panel.classList.toggle("is-offline", !connected);
+  $("#sidebar-device-name").textContent = connected
+    ? (device?.product || "4G 模块")
+    : "等待设备";
+  $("#sidebar-device-state").textContent = connected ? "USB" : "未连接";
 }
 
 function setValue(id, text, tone = "") {
@@ -262,8 +271,9 @@ function signalTone(dbm) {
 async function loadStatus() {
   try {
     const status = await api("/api/status");
-    const connected = Boolean(status.usb_device || status.imei || status.firmware || status.operator || status.sim_inserted);
+    const connected = Boolean(status.usb_device || status.imei || status.firmware);
     setHeaderDeviceState(connected, connected ? "设备在线" : "等待设备");
+    setSidebarDeviceState(connected, status.usb_device);
     setValue("#operator", displayOperatorName(status.operator), status.operator ? "neutral" : "muted");
     setValue("#signal", status.signal_dbm ? `${status.signal_dbm} dBm` : "--", signalTone(status.signal_dbm));
     setValue("#network-mode", status.network_mode || status.reg_status_text || "--", status.network_mode ? "neutral" : "muted");
@@ -278,12 +288,14 @@ async function loadStatus() {
     setValue("#work-mode", workMode.label, workMode.tone);
     setWorkModeControl(status.usbnet_mode);
     setUSBNetModeSelector(status.usbnet_mode);
-    $("#device-summary").textContent =
-      status.hardware_status || [status.imei, status.firmware].filter(Boolean).join(" · ") || "模块初始化中";
+    $("#device-summary").textContent = connected
+      ? (status.hardware_status || [status.imei, status.firmware].filter(Boolean).join(" · ") || "模块初始化中")
+      : "等待连接 4G 模块";
     renderHardwareDetails(status);
   } catch (error) {
     $("#device-summary").textContent = error.message;
     setHeaderDeviceState(false, "设备离线");
+    setSidebarDeviceState(false);
     setWorkModeControl(null);
   }
 }
