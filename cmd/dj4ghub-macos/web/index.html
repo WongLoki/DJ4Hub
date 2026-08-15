@@ -193,7 +193,12 @@
             <button id="refresh-esim" class="secondary" type="button">刷新卡片</button>
           </div>
         </div>
-        <details id="esim-download-section" class="fold-panel esim-download">
+        <div id="esim-card-state" class="esim-card-state">
+          <span class="esim-card-state-mark" aria-hidden="true"></span>
+          <strong id="esim-card-state-title">准备读取卡片</strong>
+          <p id="esim-card-state-detail">正在确认当前卡片是否支持 eUICC Profile 管理。</p>
+        </div>
+        <details id="esim-download-section" class="fold-panel esim-download" hidden>
           <summary><span><span class="panel-icon" aria-hidden="true">↓</span><strong>下载新 Profile</strong></span><small>SM-DP+ 激活信息</small></summary>
           <form id="esim-download-form" class="esim-download-grid">
             <label><span>SM-DP+ 地址</span><input id="esim-smdp" placeholder="smdp.example.com" required></label>
@@ -206,7 +211,7 @@
           <p id="esim-download-status" class="inline-status">填写运营商提供的激活信息后才会执行下载。</p>
         </details>
 
-        <details id="esim-profile-panel" class="profile-panel" open>
+        <details id="esim-profile-panel" class="profile-panel" open hidden>
           <summary class="profile-panel-heading"><span class="profile-panel-title"><span class="section-kicker">INSTALLED PROFILES</span><strong>已安装 Profile</strong></span><small>启用、改名或删除卡内 Profile</small></summary>
           <div class="profile-panel-content">
             <div class="profile-tools-grid">

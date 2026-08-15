@@ -595,6 +595,18 @@ function setESIMHealthPolling(enabled) {
   }, 30000);
 }
 
+function showESIMCardState(title, detail, tone = "") {
+  const panel = $("#esim-card-state");
+  panel.className = `esim-card-state${tone ? ` ${tone}` : ""}`;
+  $("#esim-card-state-title").textContent = title;
+  $("#esim-card-state-detail").textContent = detail;
+  panel.hidden = false;
+}
+
+function hideESIMCardState() {
+  $("#esim-card-state").hidden = true;
+}
+
 function diagnosticCard(label, value, detail = "") {
   const card = document.createElement("div");
   card.className = "diagnostic-card";
@@ -1047,23 +1059,30 @@ async function loadESIM() {
   $("#esim-chip").hidden = true;
   $("#esim-chip").replaceChildren();
   runtime.hidden = true;
-  download.hidden = false;
-  profilePanel.hidden = false;
-  phonebook.hidden = false;
+  download.hidden = true;
+  profilePanel.hidden = true;
+  phonebook.hidden = true;
   list.className = "list empty";
   list.textContent = "正在读取 eUICC";
   status.textContent = "正在通过 AT+CCHO/CGLA 读取 eUICC/eSIM 卡片";
+  showESIMCardState("正在识别卡片", "正在确认当前卡片是否支持 eUICC Profile 管理。");
   try {
     const overview = await api("/api/esim");
     if (overview.card_type === "physical_sim") {
       status.textContent = overview.message;
       list.textContent = overview.message;
-      download.hidden = true;
-      profilePanel.hidden = true;
-      phonebook.hidden = true;
+      showESIMCardState(
+        "当前是实体 SIM 卡",
+        "短信与蜂窝上网功能可以正常使用；这张卡不包含可管理的 eUICC Profile。",
+        "is-physical",
+      );
       setESIMHealthPolling(false);
       return;
     }
+    hideESIMCardState();
+    download.hidden = false;
+    profilePanel.hidden = false;
+    phonebook.hidden = false;
     const notesResponse = await api("/api/esim/module-notes");
     const notes = notesResponse.notes || {};
     const profiles = profileRows(overview);
@@ -1261,6 +1280,7 @@ async function loadESIM() {
   } catch (error) {
     status.textContent = `读取失败：${error.message}`;
     list.textContent = error.message;
+    showESIMCardState("暂时无法读取卡片", error.message, "is-error");
     setESIMHealthPolling(false);
   }
 }

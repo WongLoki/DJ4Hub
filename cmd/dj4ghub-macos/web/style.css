@@ -290,6 +290,15 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .esim-intro-actions { max-width: min(52%, 500px); }
 .esim-status { display: flex; min-width: 0; align-items: center; gap: 7px; margin: 0 !important; overflow: hidden; color: var(--muted) !important; font-size: 9px !important; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .esim-status::before { width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--warning); content: ""; }
+.esim-card-state { display: grid; max-width: 480px; min-height: 180px; place-items: center; align-content: center; gap: 8px; margin: 28px auto 0; padding: 24px; text-align: center; }
+.esim-card-state[hidden] { display: none; }
+.esim-card-state-mark { position: relative; width: 34px; height: 42px; margin-bottom: 4px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); box-shadow: 0 10px 30px color-mix(in srgb, var(--shadow) 38%, transparent); }
+.esim-card-state-mark::before { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border: 1px solid var(--line-strong); border-radius: 2px; content: ""; }
+.esim-card-state-mark::after { position: absolute; right: 7px; bottom: 8px; left: 7px; height: 8px; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); content: ""; }
+.esim-card-state strong { color: var(--text); font-size: 14px; font-weight: 600; }
+.esim-card-state p { max-width: 400px; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.esim-card-state.is-physical .esim-card-state-mark { border-color: color-mix(in srgb, var(--warning) 48%, var(--line)); background: color-mix(in srgb, var(--warning) 7%, var(--surface)); }
+.esim-card-state.is-error .esim-card-state-mark { border-color: color-mix(in srgb, var(--negative) 42%, var(--line)); }
 .view-meta { display: grid; flex: none; gap: 2px; text-align: right; }
 .view-meta span { color: var(--dim); font-size: 8px; }
 .view-meta strong { color: var(--text-default); font-size: 11px; font-weight: 550; }
