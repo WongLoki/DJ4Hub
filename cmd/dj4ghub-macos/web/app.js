@@ -665,6 +665,26 @@ async function runNetworkCheck(label, path, button) {
   }
 }
 
+function renderNetworkRecovery(diag) {
+  const panel = $("#network-recovery");
+  const service = diag.network_service;
+  if (!service || diag.usb_network_ready) {
+    panel.hidden = true;
+    return;
+  }
+
+  const identity = [service.name, service.device].filter(Boolean).join(" · ");
+  const disabled = Boolean(service.disabled);
+  $("#network-recovery-title").textContent = disabled
+    ? "macOS 已禁用当前 USB 网卡"
+    : "USB 网卡尚未取得 DHCP 地址";
+  $("#network-recovery-detail").textContent = disabled
+    ? `${identity} 已存在，但网络服务处于禁用状态。启用后将重新请求地址。`
+    : `${identity} 已启用，但当前没有 IPv4 地址。可以让 macOS 重新请求 DHCP。`;
+  $("#enable-network-service").textContent = disabled ? "启用并获取 IP" : "重新请求 DHCP";
+  panel.hidden = false;
+}
+
 async function loadNetwork() {
   const grid = $("#network-grid");
   const ifaceList = $("#network-interfaces");
@@ -680,13 +700,29 @@ async function loadNetwork() {
     const usb = diag.usb_device
       ? `${diag.usb_device.vendor || ""} ${diag.usb_device.product || ""} (${diag.usb_device.vendor_id}:${diag.usb_device.product_id})`
       : "未检测到";
+    const service = diag.network_service;
+    let usbNetworkValue = "未识别";
+    let usbNetworkDetail = "macOS 网络接口";
+    let usbNetworkTone = "is-bad";
+    if (service?.disabled) {
+      usbNetworkValue = "服务已禁用";
+      usbNetworkDetail = [service.name, service.device].filter(Boolean).join(" · ");
+    } else if (diag.usb_network_ready) {
+      usbNetworkValue = service?.device ? `${service.device} 已连接` : "已连接";
+      usbNetworkDetail = service?.ipv4 || "已取得 DHCP 地址";
+      usbNetworkTone = "is-good";
+    } else if (diag.usb_network_present) {
+      usbNetworkValue = "等待 DHCP";
+      usbNetworkDetail = service?.device || "macOS 已识别接口";
+      usbNetworkTone = "is-warn";
+    }
     const route = diag.default_route || {};
     const routeText = route.interface || "未知";
     const path = document.createElement("div");
     path.className = "network-path";
     path.append(
       networkPathStep("蜂窝数据", active ? `已激活 ${active}` : "未激活", addresses || "等待分配蜂窝 IP", active ? "is-good" : "is-warn"),
-      networkPathStep("USB 网卡", diag.usb_network_present ? "已识别" : "未识别", "macOS 网络接口", diag.usb_network_present ? "is-good" : "is-bad"),
+      networkPathStep("USB 网卡", usbNetworkValue, usbNetworkDetail, usbNetworkTone),
       networkPathStep("默认出口", routeText, route.gateway ? `网关 ${route.gateway}` : "macOS 当前默认路由", route.interface ? "is-good" : "is-warn"),
     );
     const facts = document.createElement("dl");
@@ -694,15 +730,23 @@ async function loadNetwork() {
     facts.append(
       networkFact("USBNET", diag.usbnet_mode ?? "未知"),
       networkFact("APN", apns || "无"),
+      networkFact("macOS 服务", service ? `${service.name} · ${service.disabled ? "已禁用" : "已启用"}` : "未创建"),
       networkFact("USB 设备", usb),
     );
     grid.className = "network-summary";
     grid.replaceChildren(path, facts);
 
     const errorText = diag.errors ? ` · 错误：${Object.values(diag.errors).join("；")}` : "";
-    $("#network-status").textContent = diag.usb_network_present
-      ? `macOS 已识别 USB 网络接口${errorText}`
-      : `蜂窝侧可能已通，但 macOS 尚未识别 USB 网卡${errorText}`;
+    if (service?.disabled) {
+      $("#network-status").textContent = `macOS 网络服务已禁用${errorText}`;
+    } else if (diag.usb_network_ready) {
+      $("#network-status").textContent = `USB 网卡已连接并取得地址${errorText}`;
+    } else if (diag.usb_network_present) {
+      $("#network-status").textContent = `macOS 已识别 USB 网卡，正在等待 DHCP${errorText}`;
+    } else {
+      $("#network-status").textContent = `蜂窝侧可能已通，但 macOS 尚未识别 USB 网卡${errorText}`;
+    }
+    renderNetworkRecovery(diag);
 
     const interfaces = Array.isArray(diag.mac_interfaces) ? diag.mac_interfaces : [];
     if (!interfaces.length) {
@@ -729,7 +773,31 @@ async function loadNetwork() {
     grid.textContent = "网络摘要暂不可用";
     ifaceList.className = "list empty";
     ifaceList.textContent = "读取失败";
+    $("#network-recovery").hidden = true;
     notice(error.message);
+  }
+}
+
+async function enableNetworkService() {
+  const confirmed = await showModal({
+    title: "启用 macOS USB 网卡",
+    message: "将启用当前模块对应的网络服务并重新请求 DHCP。macOS 可能要求管理员授权。",
+    confirmLabel: "继续启用",
+  });
+  if (!confirmed) return;
+  const button = $("#enable-network-service");
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "正在启用…";
+  try {
+    const result = await api("/api/network/enable-service", { method: "POST" });
+    notice(result.summary || "网络服务已处理");
+    await Promise.all([loadNetwork(), loadSidebarConnection()]);
+  } catch (error) {
+    notice(error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
   }
 }
 
@@ -1353,6 +1421,7 @@ $("#clear-module-sms").addEventListener("click", async () => {
 $("#refresh-esim").addEventListener("click", loadESIM);
 $("#probe-esim-phonebook").addEventListener("click", probeESIMPhonebook);
 $("#refresh-network").addEventListener("click", loadNetwork);
+$("#enable-network-service").addEventListener("click", enableNetworkService);
 $("#workmode-sms").addEventListener("click", () =>
   switchWorkMode(0, "短信模式", $("#workmode-sms")));
 $("#workmode-network").addEventListener("click", () =>

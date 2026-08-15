@@ -351,6 +351,11 @@ input:focus { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); 
 .diagnostic-card small { display: block; margin-top: 7px; color: var(--dim); font-size: 9px; line-height: 1.45; }
 
 .network-summary { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+.network-recovery { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 10px; border: 1px solid color-mix(in srgb, var(--warning) 24%, var(--line)); border-radius: var(--radius-md); padding: 13px 15px; background: color-mix(in srgb, var(--warning) 6%, var(--surface)); }
+.network-recovery[hidden] { display: none; }
+.network-recovery strong { display: block; color: var(--text); font-size: 10px; font-weight: 600; }
+.network-recovery p { margin: 4px 0 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.network-recovery button { flex: none; border-color: color-mix(in srgb, var(--warning) 26%, var(--line)); background: var(--surface-raised); color: var(--text); }
 .network-path { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 17px 0; }
 .network-path-step { position: relative; min-width: 0; min-height: 65px; border-right: 1px solid var(--hairline); padding: 0 22px 0 36px; }
 .network-path-step:last-child { border-right: 0; }
@@ -361,7 +366,7 @@ input:focus { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); 
 .network-path-step > span { display: block; color: var(--muted); font-size: 9px; }
 .network-path-step > strong { display: block; margin-top: 8px; overflow: hidden; color: var(--text); font-size: 14px; font-weight: 550; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .network-path-step > small { display: block; margin-top: 6px; overflow: hidden; color: var(--dim); font-size: 8px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
-.network-facts { display: grid; grid-template-columns: .5fr 1fr 1.5fr; margin: 0; border-top: 1px solid var(--hairline); background: var(--surface-soft); }
+.network-facts { display: grid; grid-template-columns: .5fr .8fr 1fr 1.5fr; margin: 0; border-top: 1px solid var(--hairline); background: var(--surface-soft); }
 .network-facts > div { min-width: 0; border-right: 1px solid var(--hairline); padding: 10px 16px; }
 .network-facts > div:last-child { border-right: 0; }
 .network-facts dt { color: var(--dim); font-size: 8px; text-transform: uppercase; }
@@ -513,6 +518,8 @@ body.modal-open { overflow: hidden; }
   .section-heading, .view-intro { align-items: flex-start; flex-direction: column; }
   .view-intro-actions { width: 100%; justify-content: space-between; }
   .network-status { max-width: min(65%, 280px); text-align: left; }
+  .network-recovery { align-items: stretch; flex-direction: column; }
+  .network-recovery button { width: 100%; }
   .esim-intro-actions { max-width: none; }
   .esim-status { max-width: 65%; text-align: left; }
   .view-intro > button, .view-intro > .risk-badge { align-self: flex-start; }
@@ -526,9 +533,10 @@ body.modal-open { overflow: hidden; }
   .network-path-step:last-child { border-right: 0; }
   .network-path-step::before { top: 3px; left: 10px; }
   .network-path-step > strong { font-size: 12px; }
-  .network-facts { grid-template-columns: .5fr 1fr 1.5fr; }
-  .network-facts > div { border-right: 1px solid var(--hairline); border-bottom: 0; padding-right: 10px; padding-left: 10px; }
-  .network-facts > div:last-child { border-right: 0; }
+  .network-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .network-facts > div { border-right: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); padding-right: 10px; padding-left: 10px; }
+  .network-facts > div:nth-child(2n) { border-right: 0; }
+  .network-facts > div:nth-last-child(-n + 2) { border-bottom: 0; }
   .esim-download-grid { grid-template-columns: 1fr; }
   .esim-download-grid button { grid-column: auto; justify-self: stretch; }
   .phonebook-result { grid-template-columns: 1fr; }

@@ -79,7 +79,7 @@ git submodule update --init --recursive
 | 实时状态 | 可用 | 运营商、信号、网络制式、SIM、本机号码、工作模式和流量 |
 | 短信 | 可用 | 收发、轮询、验证码、长短信与模块存储清理 |
 | eSIM / 卡片 | 可用 | 管理插在模块卡槽中的兼容实体 eUICC 卡片 |
-| USB 4G 上网 | 可用 | 切换 USB 网卡模式并检查 macOS 网络接口 |
+| USB 4G 上网 | 可用 | 切换 USB 网卡模式，识别被禁用的 macOS 网络服务并一键恢复 DHCP |
 | 联网活动 | 可用 | 展示连接元数据，不读取 HTTPS 页面内容 |
 | AT 调试 | 可用 | 直接向模块发送 AT 指令 |
 | Apple Silicon | 可用 | 当前发行包面向 macOS 13+、M 系列芯片 |

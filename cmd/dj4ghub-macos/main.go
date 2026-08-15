@@ -128,17 +128,19 @@ type usbDeviceStatus struct {
 }
 
 type networkDiagnostic struct {
-	USBNetMode        string            `json:"usbnet_mode"`
-	USBCfg            string            `json:"usbcfg"`
-	PDPContexts       []pdpContext      `json:"pdp_contexts"`
-	ActiveContexts    []int             `json:"active_contexts"`
-	PDPAddresses      []string          `json:"pdp_addresses"`
-	MacInterfaces     []macNetInterface `json:"mac_interfaces"`
-	DefaultRoute      macDefaultRoute   `json:"default_route"`
-	USBNetworkPresent bool              `json:"usb_network_present"`
-	USBDevice         *usbDeviceStatus  `json:"usb_device,omitempty"`
-	Raw               map[string]string `json:"raw,omitempty"`
-	Errors            map[string]string `json:"errors,omitempty"`
+	USBNetMode        string             `json:"usbnet_mode"`
+	USBCfg            string             `json:"usbcfg"`
+	PDPContexts       []pdpContext       `json:"pdp_contexts"`
+	ActiveContexts    []int              `json:"active_contexts"`
+	PDPAddresses      []string           `json:"pdp_addresses"`
+	MacInterfaces     []macNetInterface  `json:"mac_interfaces"`
+	DefaultRoute      macDefaultRoute    `json:"default_route"`
+	USBNetworkPresent bool               `json:"usb_network_present"`
+	USBNetworkReady   bool               `json:"usb_network_ready"`
+	NetworkService    *macNetworkService `json:"network_service,omitempty"`
+	USBDevice         *usbDeviceStatus   `json:"usb_device,omitempty"`
+	Raw               map[string]string  `json:"raw,omitempty"`
+	Errors            map[string]string  `json:"errors,omitempty"`
 }
 
 type pdpContext struct {
@@ -750,6 +752,7 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("GET /api/network/traffic", a.networkTraffic)
 	mux.HandleFunc("POST /api/network/check-4g", a.check4GRoute)
 	mux.HandleFunc("POST /api/network/check-proxy", a.checkProxyRoute)
+	mux.HandleFunc("POST /api/network/enable-service", a.enableNetworkService)
 	mux.HandleFunc("POST /api/network/usbnet", a.setUSBNetMode)
 	mux.HandleFunc("POST /api/network/reboot-module", a.rebootModule)
 	mux.HandleFunc("GET /api/esim", a.esimOverview)
@@ -1412,14 +1415,27 @@ func (a *app) networkDiagnostic(w http.ResponseWriter, _ *http.Request) {
 	}()
 	raw := make(map[string]string)
 	errs := make(map[string]string)
+	device := a.currentUSBDevice()
 	diag := networkDiagnostic{
-		USBDevice:     a.currentUSBDevice(),
+		USBDevice:     device,
 		MacInterfaces: discoverMacNetworkInterfaces(),
 		DefaultRoute:  discoverMacDefaultRoute(),
 		Raw:           raw,
 		Errors:        errs,
 	}
-	diag.USBNetworkPresent = hasLikelyUSBNetworkInterface(diag.MacInterfaces)
+	currentProduct := ""
+	if device != nil {
+		currentProduct = device.Product
+	}
+	diag.NetworkService = currentDJINetworkService(discoverMacNetworkServices(), diag.MacInterfaces, currentProduct)
+	diag.USBNetworkPresent = diag.NetworkService != nil && diag.NetworkService.InterfacePresent
+	if diag.NetworkService == nil {
+		diag.USBNetworkPresent = hasLikelyUSBNetworkInterface(diag.MacInterfaces)
+	}
+	diag.USBNetworkReady = networkServiceReady(diag.NetworkService)
+	if diag.NetworkService == nil {
+		diag.USBNetworkReady = diag.USBNetworkPresent
+	}
 
 	commands := map[string]string{
 		"usbnet":  `AT+QCFG="usbnet"`,
@@ -1446,6 +1462,58 @@ func (a *app) networkDiagnostic(w http.ResponseWriter, _ *http.Request) {
 		diag.Errors = nil
 	}
 	writeJSON(w, http.StatusOK, diag)
+}
+
+func (a *app) enableNetworkService(w http.ResponseWriter, _ *http.Request) {
+	device := a.currentUSBDevice()
+	if device == nil {
+		writeError(w, http.StatusConflict, "未检测到兼容 USB 设备")
+		return
+	}
+	service := currentDJINetworkService(discoverMacNetworkServices(), discoverMacNetworkInterfaces(), device.Product)
+	if service == nil {
+		writeError(w, http.StatusConflict, "未找到当前模块对应的 macOS 网络服务")
+		return
+	}
+	if networkServiceReady(service) {
+		writeJSON(w, http.StatusOK, networkServiceRepairResult{
+			Ready:          true,
+			Summary:        fmt.Sprintf("%s 已经可用", service.Name),
+			NetworkService: service,
+		})
+		return
+	}
+	if a.demo {
+		demoService := *service
+		demoService.Disabled = false
+		demoService.InterfacePresent = true
+		demoService.InterfaceStatus = "active"
+		demoService.IPv4 = "192.168.225.23"
+		writeJSON(w, http.StatusOK, networkServiceRepairResult{
+			Ready:          true,
+			Summary:        "演示：网络服务已启用并取得 DHCP 地址",
+			NetworkService: &demoService,
+		})
+		return
+	}
+	if err := enableMacNetworkService(service.Name); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	service = waitForMacNetworkService(service.Name, device.Product, networkServiceDHCPWait)
+	if networkServiceReady(service) {
+		writeJSON(w, http.StatusOK, networkServiceRepairResult{
+			Ready:          true,
+			Summary:        fmt.Sprintf("%s 已启用，已获取 IP %s", service.Name, service.IPv4),
+			NetworkService: service,
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, networkServiceRepairResult{
+		Ready:          false,
+		Summary:        "网络服务已启用，macOS 仍在等待 DHCP 地址",
+		NetworkService: service,
+	})
 }
 
 func (a *app) localNetworkConnection(w http.ResponseWriter, _ *http.Request) {

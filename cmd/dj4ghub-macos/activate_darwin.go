@@ -7,20 +7,12 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
 )
 
 const activationWaitTimeout = 40 * time.Second
-
-type macNetworkService struct {
-	Name         string
-	HardwarePort string
-	Device       string
-	Disabled     bool
-}
 
 func activateDJINetwork(out io.Writer) error {
 	if out == nil {
@@ -172,30 +164,6 @@ func cleanStaleDJINetworkServices(out io.Writer, currentProduct string) {
 	}
 }
 
-func parseMacNetworkServiceOrder(output string) []macNetworkService {
-	servicePattern := regexp.MustCompile(`^\((\d+|\*)\)\s+(.+)$`)
-	detailPattern := regexp.MustCompile(`^\(Hardware Port:\s*(.*),\s*Device:\s*([^)]*)\)$`)
-	var services []macNetworkService
-	for _, rawLine := range strings.Split(output, "\n") {
-		line := strings.TrimSpace(rawLine)
-		if match := servicePattern.FindStringSubmatch(line); len(match) == 3 {
-			services = append(services, macNetworkService{
-				Name:     strings.TrimSpace(match[2]),
-				Disabled: match[1] == "*",
-			})
-			continue
-		}
-		if len(services) == 0 {
-			continue
-		}
-		if match := detailPattern.FindStringSubmatch(line); len(match) == 3 {
-			services[len(services)-1].HardwarePort = strings.TrimSpace(match[1])
-			services[len(services)-1].Device = strings.TrimSpace(match[2])
-		}
-	}
-	return services
-}
-
 func parseMacHardwareDevices(output string) map[string]bool {
 	devices := make(map[string]bool)
 	for _, rawLine := range strings.Split(output, "\n") {
@@ -224,35 +192,4 @@ func staleDJINetworkServices(services []macNetworkService, presentDevices map[st
 	}
 	sort.Slice(stale, func(i, j int) bool { return stale[i].Name < stale[j].Name })
 	return stale
-}
-
-func isDJINetworkService(service macNetworkService) bool {
-	identity := strings.ToLower(service.Name + " " + service.HardwarePort)
-	return strings.Contains(identity, "baiwang") ||
-		strings.Contains(identity, "eg25") ||
-		strings.Contains(identity, "qdc507")
-}
-
-func networkIdentityMatchesProduct(service macNetworkService, product string) bool {
-	identity := compactNetworkIdentity(service.Name + service.HardwarePort)
-	// ECM enumeration uses the EG25/QDC507 identity even when the initial
-	// vendor-specific enumeration reports only "Baiwang". Preserve this service
-	// while the module is between enumerations; the old Baiwang service can be
-	// removed after the ECM device appears.
-	if strings.Contains(identity, "eg25") || strings.Contains(identity, "qdc507") {
-		return true
-	}
-	product = compactNetworkIdentity(product)
-	return product != "" && strings.Contains(identity, product)
-}
-
-func compactNetworkIdentity(value string) string {
-	value = strings.ToLower(value)
-	var result strings.Builder
-	for _, char := range value {
-		if (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') {
-			result.WriteRune(char)
-		}
-	}
-	return result.String()
 }
