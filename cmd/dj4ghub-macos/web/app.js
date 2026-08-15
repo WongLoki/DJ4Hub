@@ -8,6 +8,8 @@ let networkTrafficInFlight = false;
 let networkActivityTimer = null;
 let networkActivityInFlight = false;
 let networkActivityCountdown = 5;
+let currentSIMPhoneNumber = "";
+let simPhoneNumberRevealed = false;
 
 function setThemePreference(theme) {
   if (theme === "light" || theme === "dark") {
@@ -268,6 +270,35 @@ function signalTone(dbm) {
   return "bad";
 }
 
+function renderSIMPhoneNumber(value, simInserted) {
+  const phoneNumber = String(value || "").trim();
+  const empty = $("#sim-phone-empty");
+  const actions = $("#sim-phone-actions");
+  const toggle = $("#sim-phone-toggle");
+  const copy = $("#sim-phone-copy");
+
+  if (!phoneNumber) {
+    currentSIMPhoneNumber = "";
+    simPhoneNumberRevealed = false;
+    empty.textContent = simInserted ? "SIM 未存储号码" : "卡片状态";
+    empty.hidden = false;
+    actions.hidden = true;
+    toggle.textContent = "--";
+    copy.disabled = true;
+    return;
+  }
+
+  if (phoneNumber !== currentSIMPhoneNumber) {
+    currentSIMPhoneNumber = phoneNumber;
+    simPhoneNumberRevealed = false;
+  }
+  empty.hidden = true;
+  actions.hidden = false;
+  toggle.textContent = simPhoneNumberRevealed ? phoneNumber : maskPhoneNumber(phoneNumber);
+  toggle.title = simPhoneNumberRevealed ? "隐藏本机号码" : "显示完整本机号码";
+  copy.disabled = false;
+}
+
 async function loadStatus() {
   try {
     const status = await api("/api/status");
@@ -282,6 +313,7 @@ async function loadStatus() {
       status.sim_inserted ? "已插入" : (status.usb_device ? "待读取" : "未检测到"),
       status.sim_inserted ? "good" : (status.usb_device ? "warn" : "bad"),
     );
+    renderSIMPhoneNumber(status.phone_number, status.sim_inserted);
     const workMode = Object.prototype.hasOwnProperty.call(status, "usbnet_mode")
       ? displayWorkMode(status.usbnet_mode)
       : displayWorkMode(null);
@@ -296,6 +328,7 @@ async function loadStatus() {
     $("#device-summary").textContent = error.message;
     setHeaderDeviceState(false, "设备离线");
     setSidebarDeviceState(false);
+    renderSIMPhoneNumber("", false);
     setWorkModeControl(null);
   }
 }
@@ -1269,6 +1302,14 @@ $("#at-form").addEventListener("submit", async (event) => {
 $("#refresh").addEventListener("click", async () => {
   await Promise.all([loadStatus(), loadSMS(), loadSidebarConnection()]);
   notice("状态已刷新");
+});
+$("#sim-phone-toggle").addEventListener("click", () => {
+  if (!currentSIMPhoneNumber) return;
+  simPhoneNumberRevealed = !simPhoneNumberRevealed;
+  renderSIMPhoneNumber(currentSIMPhoneNumber, true);
+});
+$("#sim-phone-copy").addEventListener("click", () => {
+  if (currentSIMPhoneNumber) copyIdentifier(currentSIMPhoneNumber, "本机号码");
 });
 $("#refresh-sms").addEventListener("click", async () => {
   const button = $("#refresh-sms");

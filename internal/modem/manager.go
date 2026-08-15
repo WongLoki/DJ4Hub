@@ -85,6 +85,7 @@ type Manager struct {
 	firmware    string
 	iccid       string
 	imsi        string
+	msisdn      string
 	operator    string
 	simInserted bool
 	signalDBM   int
@@ -889,7 +890,7 @@ func (m *Manager) RefreshDeviceInfo() {
 // collectDeviceInfo 采集设备信息 (IMEI, ICCID, IMSI, 运营商, 信号等)
 func (m *Manager) collectDeviceInfo() {
 	// 1. 无锁阶段：执行所有 AT 命令
-	var imei, firmware, iccid, imsi, operator, apn, networkMode, networkDuplex string
+	var imei, firmware, iccid, imsi, msisdn, operator, apn, networkMode, networkDuplex string
 	var simInserted bool
 	var regStatus, imsStatus int
 	var regStatusText, lac, cellID string
@@ -908,6 +909,9 @@ func (m *Manager) collectDeviceInfo() {
 	if simInserted {
 		if v, err := m.QueryIMSI(); err == nil {
 			imsi = v
+		}
+		if v, err := m.QueryMSISDN(); err == nil {
+			msisdn = v
 		}
 	}
 	if v, err := m.QueryICCID(); err == nil {
@@ -959,6 +963,9 @@ func (m *Manager) collectDeviceInfo() {
 	if imsi != "" {
 		m.imsi = imsi
 	}
+	// 本机号码可能没有写入 SIM。每次重新采集都覆盖缓存，避免换卡后
+	// 继续展示上一张卡的号码。
+	m.msisdn = msisdn
 	if operator != "" {
 		m.operator = operator
 	}
@@ -1115,6 +1122,7 @@ type DeviceStatus struct {
 	Firmware        string           `json:"firmware"`
 	ICCID           string           `json:"iccid"`
 	IMSI            string           `json:"imsi"`
+	PhoneNumber     string           `json:"phone_number,omitempty"`
 	NativeSPN       string           `json:"native_spn,omitempty"`
 	NativeMCC       string           `json:"native_mcc,omitempty"`
 	NativeMNC       string           `json:"native_mnc,omitempty"`
@@ -1153,6 +1161,7 @@ func (m *Manager) GetFullStatus() DeviceStatus {
 		Firmware:      m.firmware,
 		ICCID:         m.iccid,
 		IMSI:          m.imsi,
+		PhoneNumber:   m.msisdn,
 		Operator:      m.operator,
 		SimInserted:   m.simInserted,
 		SignalDBM:     m.signalDBM,

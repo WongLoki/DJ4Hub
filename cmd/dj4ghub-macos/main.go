@@ -793,6 +793,7 @@ func (a *app) status(w http.ResponseWriter, _ *http.Request) {
 			Firmware:      "EG25GGBR07A08M2G",
 			ICCID:         "89860123456789012345",
 			IMSI:          "460001234567890",
+			PhoneNumber:   "+8613800138000",
 			Operator:      "China Mobile",
 			SimInserted:   true,
 			SignalDBM:     -73,
@@ -868,6 +869,7 @@ func (a *app) usbATStatus() (modem.DeviceStatus, error) {
 	copsResp, _ := a.usbAT.Command("AT+COPS?", 3*time.Second)
 	qccidResp, _ := a.usbAT.Command("AT+QCCID", 3*time.Second)
 	cimiResp, _ := a.usbAT.Command("AT+CIMI", 3*time.Second)
+	cnumResp, _ := a.usbAT.Command("AT+CNUM", 3*time.Second)
 	qnwinfoResp, _ := a.usbAT.Command("AT+QNWINFO", 3*time.Second)
 	usbnetResp, _ := a.usbAT.Command(`AT+QCFG="usbnet"`, 3*time.Second)
 
@@ -885,6 +887,7 @@ func (a *app) usbATStatus() (modem.DeviceStatus, error) {
 		Firmware:      parseUSBATFirmware(firmwareResp),
 		ICCID:         parseUSBATPrefixed(qccidResp, "+QCCID:"),
 		IMSI:          parseUSBATIMSI(cimiResp),
+		PhoneNumber:   modem.ParseMSISDNResponse(cnumResp),
 		Operator:      parseUSBATOperator(copsResp),
 		SimInserted:   strings.Contains(strings.ToUpper(cpinResp), "READY"),
 		SignalDBM:     parseUSBATCSQDBM(csqResp),

@@ -239,6 +239,11 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .status-grid strong.bad { color: var(--negative); }
 .status-grid strong.muted { color: var(--dim); }
 .status-grid strong.neutral { color: var(--text); }
+.sim-phone-actions { display: flex; min-width: 0; align-items: center; gap: 6px; margin-top: 5px; }
+.sim-phone-actions[hidden] { display: none; }
+.sim-phone-actions button { min-width: 0; border: 0; padding: 0; background: transparent; color: var(--dim); font-size: 8px; line-height: 1.2; }
+.sim-phone-actions #sim-phone-toggle { overflow: hidden; flex: 1; color: var(--muted); text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.sim-phone-actions #sim-phone-copy { flex: none; color: var(--accent); }
 
 .hardware-details, #workmode-status { max-width: 1100px; margin-right: auto; margin-left: auto; }
 .hardware-details { margin-top: 10px; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 13px 15px; background: var(--surface); }

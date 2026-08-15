@@ -115,7 +115,13 @@
           <div class="status-primary"><span>运营商</span><strong id="operator">--</strong><small>蜂窝网络</small></div>
           <div class="status-primary"><span>信号</span><strong id="signal">--</strong><small>接收强度</small></div>
           <div class="status-primary"><span>网络</span><strong id="network-mode">--</strong><small>注册制式</small></div>
-          <div class="status-primary"><span>SIM</span><strong id="sim">--</strong><small>卡片状态</small></div>
+          <div class="status-primary">
+            <span>SIM</span><strong id="sim">--</strong><small id="sim-phone-empty">卡片状态</small>
+            <div id="sim-phone-actions" class="sim-phone-actions" hidden>
+              <button id="sim-phone-toggle" type="button">--</button>
+              <button id="sim-phone-copy" type="button">复制</button>
+            </div>
+          </div>
           <div class="status-primary"><span>工作模式</span><strong id="work-mode">--</strong><small>USBNET</small></div>
           <div><span>实时下载</span><strong id="traffic-rx-rate">--</strong></div>
           <div><span>实时上传</span><strong id="traffic-tx-rate">--</strong></div>
