@@ -998,6 +998,37 @@ async function setUSBNetMode(mode) {
   }
 }
 
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function waitForUSBNetwork(status, timeoutMilliseconds = 60000) {
+  const startedAt = Date.now();
+  let lastState = "等待模块重新枚举";
+  while (Date.now() - startedAt < timeoutMilliseconds) {
+    try {
+      const diag = await api("/api/network");
+      setUSBNetModeSelector(diag.usbnet_mode);
+      if (diag.usb_network_ready) return diag;
+      if (diag.network_service?.disabled) {
+        lastState = `${diag.network_service.name} 已识别，但 macOS 网络服务处于禁用状态`;
+      } else if (diag.usb_network_present) {
+        lastState = "USB 网卡已出现，正在等待 DHCP 地址";
+      } else if (diag.usb_device) {
+        lastState = "模块已重新连接，正在等待 USB 网卡出现";
+      } else {
+        lastState = "USB 正在重新枚举";
+      }
+    } catch (error) {
+      lastState = `等待设备恢复：${error.message}`;
+    }
+    const secondsLeft = Math.max(1, Math.ceil((timeoutMilliseconds - (Date.now() - startedAt)) / 1000));
+    status.textContent = `${lastState} · 最长等待 ${secondsLeft}s`;
+    await wait(2500);
+  }
+  throw new Error(`${lastState}，未能在 60 秒内完成上网准备`);
+}
+
 async function switchWorkMode(mode, label, button) {
   if (button.getAttribute("aria-pressed") === "true") {
     notice(`当前已是${label}`);
@@ -1005,7 +1036,9 @@ async function switchWorkMode(mode, label, button) {
   }
   const confirmed = await showModal({
     title: `切换到${label}`,
-    message: `将写入 usbnet=${mode} 并重启模块，USB 会短暂断开。`,
+    message: mode === 1
+      ? "将切换并重启模块，等待 macOS 网卡取得地址，再通过百度、Google 等地址自动验证公网。"
+      : `将写入 usbnet=${mode} 并重启模块，USB 会短暂断开。`,
     confirmLabel: "确认切换",
   });
   if (!confirmed) return;
@@ -1021,18 +1054,34 @@ async function switchWorkMode(mode, label, button) {
     });
     status.textContent = `usbnet 已写入 ${result.mode}，正在重启模块...`;
     await api("/api/network/reboot-module", { method: "POST" });
-    status.textContent = `${label}已写入，等待模块重新枚举后自动刷新。`;
-    notice(`${label}切换中`);
-    setTimeout(loadStatus, 8000);
-    setTimeout(loadNetwork, 12000);
-    setTimeout(() => {
-      status.textContent = `${label}切换完成后，请确认状态卡和网络诊断。`;
-      buttons.forEach((item) => { item.disabled = false; });
-    }, 13000);
+    if (mode === 1) {
+      status.textContent = "上网模式已写入，等待 USB 网卡和 DHCP...";
+      notice("正在准备上网模式");
+      const diag = await waitForUSBNetwork(status);
+      const interfaceName = diag.network_service?.device || "USB 网卡";
+      status.textContent = `${interfaceName} 已取得地址，正在验证公网...`;
+      const connectivity = await api("/api/network/check-4g", { method: "POST" });
+      renderNetworkCheck("4G 公网", connectivity);
+      await Promise.all([loadStatus(), loadNetwork(), loadSidebarConnection()]);
+      if (connectivity.ok) {
+        status.textContent = `上网模式已就绪 · ${connectivity.summary}`;
+        notice("上网模式已就绪");
+      } else {
+        status.textContent = `上网模式已切换，但${connectivity.summary}`;
+        notice(connectivity.summary);
+      }
+    } else {
+      status.textContent = `${label}已写入，等待模块重新枚举后自动刷新。`;
+      notice(`${label}切换中`);
+      await wait(9000);
+      await Promise.all([loadStatus(), loadNetwork(), loadSidebarConnection()]);
+      status.textContent = `${label}切换完成。`;
+    }
   } catch (error) {
     status.hidden = false;
     status.textContent = `${label}切换失败：${error.message}`;
     notice(error.message);
+  } finally {
     buttons.forEach((item) => { item.disabled = false; });
   }
 }

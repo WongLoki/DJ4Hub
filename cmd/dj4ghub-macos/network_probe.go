@@ -12,10 +12,14 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const cellularProbeTimeout = 10 * time.Second
+const (
+	cellularProbeTimeout = 10 * time.Second
+)
 
 var (
 	cellularDomainProbeTargets = []string{
+		"https://www.baidu.com/",
+		"https://www.google.com/generate_204",
 		"http://captive.apple.com/hotspot-detect.html",
 		"http://www.msftconnecttest.com/connecttest.txt",
 	}
@@ -29,27 +33,43 @@ var (
 // only the direct-IP probe succeeds, the cellular path is up but name-based
 // browsing is still considered unavailable.
 func probeCellularInternet(ctx context.Context, interfaceName string, sourceIPv4 string) (target string, dnsOK bool, err error) {
-	if target, err = probeFirstTarget(ctx, interfaceName, sourceIPv4, cellularDomainProbeTargets); err == nil {
+	if target, err = probeAnyTarget(ctx, interfaceName, sourceIPv4, cellularDomainProbeTargets); err == nil {
 		return target, true, nil
 	}
 	domainErr := err
-	if target, err = probeFirstTarget(ctx, interfaceName, sourceIPv4, cellularIPProbeTargets); err == nil {
+	if target, err = probeAnyTarget(ctx, interfaceName, sourceIPv4, cellularIPProbeTargets); err == nil {
 		return target, false, nil
 	}
 	return "", false, errors.Join(domainErr, err)
 }
 
-func probeFirstTarget(ctx context.Context, interfaceName string, sourceIPv4 string, targets []string) (string, error) {
-	var probeErrors []error
-	for _, target := range targets {
-		if err := probeHTTPFromInterface(ctx, interfaceName, sourceIPv4, target); err == nil {
-			return target, nil
-		} else {
-			probeErrors = append(probeErrors, fmt.Errorf("%s: %w", target, err))
-		}
-	}
-	if len(probeErrors) == 0 {
+func probeAnyTarget(ctx context.Context, interfaceName string, sourceIPv4 string, targets []string) (string, error) {
+	if len(targets) == 0 {
 		return "", errors.New("没有配置公网检测地址")
+	}
+	probeCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	type probeResult struct {
+		target string
+		err    error
+	}
+	results := make(chan probeResult, len(targets))
+	for _, target := range targets {
+		go func(target string) {
+			results <- probeResult{
+				target: target,
+				err:    probeHTTPFromInterface(probeCtx, interfaceName, sourceIPv4, target),
+			}
+		}(target)
+	}
+	probeErrors := make([]error, 0, len(targets))
+	for range targets {
+		result := <-results
+		if result.err == nil {
+			cancel()
+			return result.target, nil
+		}
+		probeErrors = append(probeErrors, fmt.Errorf("%s: %w", result.target, result.err))
 	}
 	return "", errors.Join(probeErrors...)
 }

@@ -28,7 +28,7 @@ func TestProbeHTTPFromInterfaceRejectsInvalidIPv4(t *testing.T) {
 	}
 }
 
-func TestProbeFirstTargetFallsBack(t *testing.T) {
+func TestProbeAnyTargetAcceptsOneSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
@@ -36,11 +36,11 @@ func TestProbeFirstTargetFallsBack(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	target, err := probeFirstTarget(ctx, "lo0", "127.0.0.1", []string{"http://127.0.0.1:1", server.URL})
+	target, err := probeAnyTarget(ctx, "lo0", "127.0.0.1", []string{"http://127.0.0.1:1", server.URL})
 	if err != nil {
-		t.Fatalf("probeFirstTarget() error = %v", err)
+		t.Fatalf("probeAnyTarget() error = %v", err)
 	}
 	if target != server.URL {
-		t.Fatalf("probeFirstTarget() target = %q, want %q", target, server.URL)
+		t.Fatalf("probeAnyTarget() target = %q, want %q", target, server.URL)
 	}
 }
