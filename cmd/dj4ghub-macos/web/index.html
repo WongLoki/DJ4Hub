@@ -239,7 +239,7 @@
 
       <section id="network" class="view">
         <div class="view-intro">
-          <div><span class="section-kicker">CONNECTIVITY</span><h2>网络</h2><p>检查蜂窝注册、USB 网卡与默认出口。</p></div>
+          <div><span class="section-kicker">CONNECTIVITY</span><h2>网络</h2><p>检查蜂窝注册、USB 网卡、macOS 出口与公网连通性。</p></div>
           <div class="view-intro-actions">
             <p id="network-status" class="network-status">尚未读取网络状态</p>
             <button id="refresh-network" class="secondary" type="button">刷新诊断</button>
@@ -255,9 +255,9 @@
         </div>
 
         <div class="settings-section">
-          <div class="section-heading"><div><h2>连通性检测</h2><p>确认真实出口与代理链路。</p></div></div>
+          <div class="section-heading"><div><h2>连通性检测</h2><p>强制绑定 USB 网卡，验证真实公网与代理链路。</p></div></div>
           <div class="control-panel">
-            <button id="check-4g-route" class="secondary" type="button">检测 4G 出口</button>
+            <button id="check-4g-route" class="secondary" type="button">检测公网连接</button>
             <button id="check-proxy-route" class="secondary" type="button">检测代理</button>
           </div>
           <div id="network-checks" class="list empty compact-list">尚未检测</div>

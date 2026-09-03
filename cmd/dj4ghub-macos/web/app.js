@@ -252,7 +252,7 @@ async function loadSidebarConnection() {
     }
     $("#sidebar-connection-detail").textContent = [connection.interface, connection.ipv4].filter(Boolean).join(" · ");
     const state = $("#sidebar-connection-state");
-    state.textContent = connection.is_default ? "默认出口" : "已连接";
+    state.textContent = connection.is_default ? "macOS 出口" : "已连接";
     state.classList.toggle("is-secondary", !connection.is_default);
     panel.hidden = false;
   } catch (_) {
@@ -730,12 +730,17 @@ async function loadNetwork() {
     }
     const route = diag.default_route || {};
     const routeText = route.interface || "未知";
+    const routeUsesUSB = Boolean(service?.device && route.interface === service.device);
+    let routeDetail = route.gateway ? `网关 ${route.gateway}` : "macOS 当前默认路由";
+    if (routeUsesUSB) {
+      routeDetail += " · 公网尚未验证";
+    }
     const path = document.createElement("div");
     path.className = "network-path";
     path.append(
       networkPathStep("蜂窝数据", active ? `已激活 ${active}` : "未激活", addresses || "等待分配蜂窝 IP", active ? "is-good" : "is-warn"),
       networkPathStep("USB 网卡", usbNetworkValue, usbNetworkDetail, usbNetworkTone),
-      networkPathStep("默认出口", routeText, route.gateway ? `网关 ${route.gateway}` : "macOS 当前默认路由", route.interface ? "is-good" : "is-warn"),
+      networkPathStep("macOS 出口", routeText, routeDetail, routeUsesUSB ? "is-good" : "is-warn"),
     );
     const facts = document.createElement("dl");
     facts.className = "network-facts";
@@ -752,7 +757,7 @@ async function loadNetwork() {
     if (service?.disabled) {
       $("#network-status").textContent = `macOS 网络服务已禁用${errorText}`;
     } else if (diag.usb_network_ready) {
-      $("#network-status").textContent = `USB 网卡已连接并取得地址${errorText}`;
+      $("#network-status").textContent = `USB 网卡已连接并取得地址 · 公网尚未验证${errorText}`;
     } else if (diag.usb_network_present) {
       $("#network-status").textContent = `macOS 已识别 USB 网卡，正在等待 DHCP${errorText}`;
     } else {
@@ -1447,7 +1452,7 @@ $("#workmode-sms").addEventListener("click", () =>
 $("#workmode-network").addEventListener("click", () =>
   switchWorkMode(1, "上网模式", $("#workmode-network")));
 $("#check-4g-route").addEventListener("click", () =>
-  runNetworkCheck("4G 出口", "/api/network/check-4g", $("#check-4g-route")));
+  runNetworkCheck("4G 公网", "/api/network/check-4g", $("#check-4g-route")));
 $("#check-proxy-route").addEventListener("click", () =>
   runNetworkCheck("代理", "/api/network/check-proxy", $("#check-proxy-route")));
 $("#usbnet-mode-0").addEventListener("click", () => setUSBNetMode(0));

@@ -1721,40 +1721,71 @@ func sessionTrafficFromCounters(current, baseline networkByteCounters) (rx, tx, 
 	return rx, tx, rx + tx
 }
 
-func (a *app) check4GRoute(w http.ResponseWriter, _ *http.Request) {
+func (a *app) check4GRoute(w http.ResponseWriter, r *http.Request) {
 	route := discoverMacDefaultRoute()
 	interfaces := discoverMacNetworkInterfaces()
-	var active *macNetInterface
-	for i := range interfaces {
-		if interfaces[i].Name == route.Interface {
-			active = &interfaces[i]
-			break
-		}
-	}
-	if route.Interface == "" {
+	device := a.currentUSBDevice()
+	if device == nil {
 		writeJSON(w, http.StatusOK, networkCheckResult{
 			OK:      false,
-			Summary: "未读取到默认出口",
-			Detail:  "macOS 没有返回 default route",
+			Summary: "未检测到 4G 模块",
+			Detail:  "请连接兼容 USB 设备后再检测公网连接",
 		})
 		return
 	}
-	if active != nil && active.Name != "en0" && active.Kind == "ethernet" && active.Status == "active" {
+	service := currentDJINetworkService(discoverMacNetworkServices(), interfaces, device.Product)
+	if !networkServiceReady(service) {
+		writeJSON(w, http.StatusOK, networkCheckResult{
+			OK:      false,
+			Summary: "4G 网卡尚未就绪",
+			Detail:  "macOS 尚未在当前 USB 网卡上取得可用 IPv4 地址",
+		})
+		return
+	}
+	if a.demo {
 		writeJSON(w, http.StatusOK, networkCheckResult{
 			OK:      true,
-			Summary: "当前正在走 4G 模块",
-			Detail:  fmt.Sprintf("默认出口 %s -> %s，IP %s", route.Interface, route.Gateway, active.IPv4),
+			Summary: "演示：4G 公网连接正常",
+			Detail:  fmt.Sprintf("已通过 %s 模拟公网验证", service.Device),
 		})
 		return
 	}
-	detail := fmt.Sprintf("默认出口 %s -> %s", route.Interface, route.Gateway)
-	if active != nil && active.IPv4 != "" {
-		detail += "，IP " + active.IPv4
+
+	ctx, cancel := context.WithTimeout(r.Context(), cellularProbeTimeout)
+	defer cancel()
+	target, dnsOK, err := probeCellularInternet(ctx, service.Device, service.IPv4)
+	routeDetail := "macOS 未返回系统出口"
+	if route.Interface != "" {
+		routeDetail = fmt.Sprintf("macOS 系统出口为 %s", route.Interface)
+		if route.Gateway != "" {
+			routeDetail += " -> " + route.Gateway
+		}
+	}
+	if err != nil {
+		writeJSON(w, http.StatusOK, networkCheckResult{
+			OK:      false,
+			Summary: "4G 网卡已就绪，但公网不可达",
+			Detail:  fmt.Sprintf("已强制通过 %s（%s）请求公网但未收到响应；%s。请检查 APN、SIM 漫游权限或套餐状态", service.Device, service.IPv4, routeDetail),
+		})
+		log.Printf("cellular internet probe failed on %s (%s): %v", service.Device, service.IPv4, err)
+		return
+	}
+	if !dnsOK {
+		writeJSON(w, http.StatusOK, networkCheckResult{
+			OK:      false,
+			Summary: "4G 公网可达，但域名访问失败",
+			Detail:  fmt.Sprintf("%s（%s）可访问 %s，但域名检测未通过；请检查 DNS 设置", service.Device, service.IPv4, target),
+		})
+		return
+	}
+	summary := "4G 公网连接正常"
+	if route.Interface != service.Device {
+		summary = "4G 公网可达，但不是 macOS 系统出口"
 	}
 	writeJSON(w, http.StatusOK, networkCheckResult{
-		OK:      false,
-		Summary: "当前没有优先走 4G 模块",
-		Detail:  detail,
+		OK:      true,
+		Summary: summary,
+		Detail:  fmt.Sprintf("已强制通过 %s（%s）访问 %s；%s", service.Device, service.IPv4, target, routeDetail),
 	})
 }
 
