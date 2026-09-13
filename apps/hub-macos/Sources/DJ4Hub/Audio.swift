@@ -75,7 +75,7 @@ struct AudioDevice: Identifiable {
         busy = true; defer { busy = false }
         try await ensureStandby(service)
         refreshDevices()
-        status = "模块待机就绪 · 电脑麦克风未开启"
+        status = "音频待机就绪 · 麦克风未开启 · 运营商通话尚未验证"
     }
     private func ensureStandby(_ service: HubService) async throws {
         let expectedGeneration = generation

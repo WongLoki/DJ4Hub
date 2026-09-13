@@ -5,7 +5,8 @@ dir=$1
 base=/sys/class/android_usb/android0
 original=$(cat "$base/functions")
 case "$original" in
-  diag,serial,rmnet,ffs|diag,serial,ecm,ffs) ;;
+  diag,serial,rmnet,ffs|diag,serial,ecm,ffs) audio_functions="$original,audio" ;;
+  diag,serial,rmnet,ffs,audio|diag,serial,ecm,ffs,audio) audio_functions="$original" ;;
   *) exit 21 ;;
 esac
 test "$(uname -r)" = 3.18.44 || exit 22
@@ -85,7 +86,7 @@ until grep -q 'VoLTE route session active' "$dir/route.log"; do
 done
 phase=usb-audio
 echo 0 > "$base/enable"
-printf '%s' "$original,audio" > "$base/functions"
+printf '%s' "$audio_functions" > "$base/functions"
 echo 1 > "$base/enable"
 printf 'ready\n' > "$dir/state"
 phase=running

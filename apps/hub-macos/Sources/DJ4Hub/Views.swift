@@ -233,7 +233,7 @@ struct PhonePage: View {
         }.frame(width: 300)
         VStack(spacing: 16) {
         Panel(title: "通话音频") {
-            SettingRow(title: "启动后后台准备", detail: "加载模块驱动并待机，不开启麦克风；USB 可能短暂重连") { Toggle("后台准备模块音频", isOn: $store.backgroundAudio).labelsHidden().toggleStyle(.switch).disabled(voice.connected || !store.calls.isEmpty) }
+            SettingRow(title: "启动后后台准备", detail: "新模块先备份配置并开启 ADB（授权保留），再加载驱动待机；不刷机、不开麦，USB 可能重连") { Toggle("后台准备模块音频", isOn: $store.backgroundAudio).labelsHidden().toggleStyle(.switch).disabled(voice.connected || !store.calls.isEmpty) }
             SettingRow(title: "自动连接", detail: "拨号时使用电脑音频") { Toggle("自动使用电脑通话音频", isOn: $useAudio).labelsHidden().toggleStyle(.switch).controlSize(.small) }
             Divider()
             devicePicker("麦克风", $voice.mic, voice.devices.filter { $0.input && !$0.module })

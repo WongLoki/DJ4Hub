@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -109,12 +110,25 @@ func (a *app) callAction(w http.ResponseWriter, r *http.Request) {
 	if body.Action == "hangup" {
 		a.captureCallHistory(identity)
 	}
-	if _, err := a.phoneCommand(command); err != nil {
+	started := time.Now()
+	if raw, err := a.phoneCommand(command); err != nil {
+		detail := ""
+		if body.Action == "dial" || body.Action == "answer" {
+			detail = voiceFailureDiagnostics(a.runATCommand)
+		}
+		// Do not log the AT command, dialed number, ICCID or raw unsolicited data.
+		cause := strings.ReplaceAll(err.Error(), command, "[command]")
+		cause = voicePrivateDigits.ReplaceAllString(cause, "[redacted]")
+		log.Printf("call_action_failed action=%s elapsed_ms=%d result=%q cause=%q diagnostics=%q", body.Action, time.Since(started).Milliseconds(), voiceDiagnosticResult(raw), cause, detail)
 		if body.Action == "dial" {
 			now := time.Now()
 			_ = a.appendHistory(historyRecord{Kind: "call", ICCID: confirmedHistoryIdentity(identity, a.historyIdentity()), Direction: "outgoing", Number: body.Number, State: "failed", Started: now, Ended: &now})
 		}
-		writeError(w, 502, err.Error())
+		message := err.Error()
+		if detail != "" {
+			message += "；语音诊断：" + detail + "。音频待机不代表 IMS 已注册或通话可用。"
+		}
+		writeError(w, 502, message)
 		return
 	}
 	if body.Action != "dtmf" {

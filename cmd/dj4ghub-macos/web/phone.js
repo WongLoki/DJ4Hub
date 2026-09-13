@@ -148,7 +148,7 @@ $('#audio-stop').onclick=stopPhoneAudio;
 $('#audio-mute').onclick=()=>{audioMuted=!audioMuted;audioStreams[0]?.getAudioTracks().forEach(t=>t.enabled=!audioMuted);$('#audio-mute').setAttribute('aria-pressed',String(audioMuted));};
 $('#audio-volume').oninput=e=>{if(audioPlayers[1])audioPlayers[1].volume=Number(e.target.value);};
 function moduleAudioRequest(path, token = moduleAudioToken) {
-  return api('/api/calls/audio/' + path, {method:'POST',headers:{'X-DJ4Hub-Audio':'1','X-DJ4Hub-Audio-Token':token}});
+  return api('/api/calls/audio/' + path, {method:'POST',headers:{'X-DJ4Hub-Audio':'1','X-DJ4Hub-Audio-Token':token,...(path === 'prepare' ? {'X-DJ4Hub-Initialize':'1'} : {})}});
 }
 function clearModuleAudioToken() {
   moduleAudioToken = '';
@@ -160,7 +160,7 @@ async function refreshModuleAudio() {
     const result = await api('/api/calls/audio');
     $('#audio-release').disabled = !moduleAudioToken || moduleAudioBusy;
     if (!result.active && moduleAudioToken) clearModuleAudioToken();
-    $('#audio-module-status').textContent = !result.configured ? (result.summary || '本机音频依赖未就绪，请执行 dj4ghub audio-check。') : result.active ? '模块音频已就绪，挂断后保持待机。关闭页面或失去心跳后恢复 USB。' : '拨号时自动初始化音频；首次允许后，进入电话页面也会自动就绪。';
+    $('#audio-module-status').textContent = !result.configured ? (result.summary || '本机音频依赖未就绪，请执行 dj4ghub audio-check。') : result.active ? '音频待机就绪，不代表 IMS 已注册或运营商通话可用。挂断后保持待机；关闭页面或失去心跳后恢复 USB。' : '拨号时自动初始化音频；首次允许后，进入电话页面也会自动就绪。';
   } catch(e) { $('#audio-module-status').textContent = e.message; }
 }
 async function releaseModuleAudio() {
@@ -195,9 +195,9 @@ async function prepareAutomaticAudio() {
   if (status.active) throw new Error('音频由另一个页面使用，请在原页面停止后重试');
   const current = await api('/api/calls');
   if ((current.calls || []).length) throw new Error('当前有通话或来电，不能重连 USB 初始化音频；请在无通话时进入电话页完成自动初始化');
-  if (localStorage.getItem('dj4hub-auto-audio-consent') !== '1') {
-    if (!await showModal({title:'启用自动通话音频',message:'首次初始化会临时加载已校验的实验驱动并重新连接 USB，可能短暂中断上网。以后进入电话页面或拨号时自动就绪，挂断后保留待机；麦克风仅在连接音频时打开。不会刷机或自动开启 ADB。',confirmLabel:'允许自动音频'})) throw new Error('已取消自动音频');
-    localStorage.setItem('dj4hub-auto-audio-consent', '1');
+  if (localStorage.getItem('dj4hub-auto-audio-consent') !== '2') {
+    if (!await showModal({title:'启用自动通话音频',message:'首次使用新模块会备份配置、授权并开启 ADB，必要时重启；该授权会保留，不会自动撤销。随后临时加载已校验的驱动，可能短暂中断上网。不会刷固件。挂断关闭麦克风并保留待机。',confirmLabel:'允许初始化和自动音频'})) throw new Error('已取消自动音频');
+    localStorage.setItem('dj4hub-auto-audio-consent', '2');
   }
   moduleAudioBusy = true;
   $('#audio-module-status').textContent = '正在校验设备、加载音频并等待 USB 重新连接…';
@@ -226,7 +226,7 @@ setInterval(async () => {
 }, 10000);
 document.querySelector('[data-view="calls"]').addEventListener('click', refreshModuleAudio);
 document.querySelector('[data-view="calls"]').addEventListener('click', () => {
-  if ($('#phone-use-audio').checked && localStorage.getItem('dj4hub-auto-audio-consent') === '1' && !moduleAudioToken && !moduleAudioBusy) {
+  if ($('#phone-use-audio').checked && localStorage.getItem('dj4hub-auto-audio-consent') === '2' && !moduleAudioToken && !moduleAudioBusy) {
     void ensureModuleAudio().catch(e => { $('#audio-module-status').textContent = e.message; });
   }
 });
