@@ -4,12 +4,20 @@
 # Build outputs
 /dist/
 /bin/
+/apps/hub-macos/.build/
+/apps/hub-macos/.swiftpm/
 *.test
 *.out
 
 # Local runtime data and logs
 *.log
 *.pid
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+communication-history.json
+history-backup.json
+*.ko
 
 # Editor files
 .idea/

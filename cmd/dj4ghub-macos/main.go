@@ -39,6 +39,7 @@ import (
 var webAssets embed.FS
 
 type receivedSMS struct {
+	Memory    string    `json:"memory,omitempty"`
 	Sender    string    `json:"sender"`
 	Content   string    `json:"content"`
 	Code      string    `json:"code,omitempty"`
@@ -75,6 +76,13 @@ type modulePhonebookEntry struct {
 }
 
 type app struct {
+	alertsStarted     time.Time
+	historyMu         sync.Mutex
+	history           *communicationHistory
+	smsPollMu         sync.Mutex
+	smsCardIdentity   string
+	audioMu           sync.Mutex
+	audioSession      *moduleAudioSession
 	modem             *modem.Manager
 	esimMu            sync.RWMutex
 	esim              *esim.Manager
@@ -217,11 +225,30 @@ func main() {
 	var listen string
 	var demo bool
 	var activate bool
+	var audioCheck bool
+	var audioInstall string
 	flag.StringVar(&port, "port", "", "AT serial port; auto-detected when omitted")
 	flag.StringVar(&listen, "listen", "127.0.0.1:7575", "HTTP listen address")
 	flag.BoolVar(&demo, "demo", false, "run the web UI with simulated modem data")
 	flag.BoolVar(&activate, "activate", false, "prepare the DJI USB network interface and exit")
+	flag.BoolVar(&audioCheck, "audio-check", false, "check local audio dependencies without accessing hardware")
+	flag.StringVar(&audioInstall, "audio-install", "", "import hash-verified local module audio files")
 	flag.Parse()
+
+	if audioInstall != "" {
+		if err := installAudioRuntime(audioInstall); err != nil {
+			log.Fatal(err)
+		}
+		log.Print("音频运行文件已导入；执行 dj4ghub audio-check 检查 ADB。未连接设备或加载驱动。")
+		return
+	}
+	if audioCheck {
+		if _, _, err := moduleAudioRuntime(); err != nil {
+			log.Fatal(err)
+		}
+		log.Print("本机音频运行文件及 ADB 已就绪；硬件兼容性将在准备时检查。")
+		return
+	}
 
 	if activate {
 		if err := activateDJINetwork(os.Stdout); err != nil {
@@ -360,6 +387,10 @@ func (a *app) installESIMManager(manager *esim.Manager, switchAllowed bool) bool
 }
 
 func serve(instance *app, listen string) {
+	instance.alertsStarted = time.Now()
+	if err := instance.initHistory(); err != nil {
+		log.Fatalf("open communication history: %v", err)
+	}
 	server := &http.Server{
 		Addr:              listen,
 		Handler:           instance.routes(),
@@ -367,6 +398,8 @@ func serve(instance *app, listen string) {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	go instance.monitorCallHistory(ctx)
+	go instance.monitorHistoryBackup(ctx)
 
 	if !instance.demo {
 		log.Printf("DJ 4G Hub is using %s", instance.port)
@@ -576,6 +609,9 @@ func usbSpeedName(speed int) string {
 }
 
 func (a *app) recordSMS(sender, content string, timestamp time.Time) {
+	if err := a.archiveReceivedSMS([]receivedSMS{{Sender: sender, Content: content, Timestamp: timestamp}}, ""); err != nil {
+		log.Printf("SMS archive failed: %v", err)
+	}
 	a.mergeSMS([]receivedSMS{{
 		Sender: sender, Content: content, Timestamp: timestamp,
 	}})
@@ -645,6 +681,8 @@ func (a *app) startSMSPoller(ctx context.Context) {
 }
 
 func (a *app) pollSMSOnce() error {
+	a.smsPollMu.Lock()
+	defer a.smsPollMu.Unlock()
 	if a.demo || a.modem != nil {
 		return nil
 	}
@@ -652,11 +690,21 @@ func (a *app) pollSMSOnce() error {
 		a.setSMSPollStatus(err)
 		return err
 	}
+	identity := a.historyIdentity()
+	if identity == "" || identity != a.smsCardIdentity {
+		a.smsReassembler = smscodec.NewReassembler()
+	}
+	a.smsCardIdentity = identity
 	messages, err := a.readUSBATSMS()
 	if err != nil {
 		a.resetUSBATIfGone(err)
 		a.setSMSPollStatus(err)
 		return err
+	}
+	identity = confirmedHistoryIdentity(identity, a.historyIdentity())
+	if err := a.archiveReceivedSMS(messages, identity); err != nil {
+		a.setSMSPollStatus(err)
+		return err // Never erase module messages before their durable archive succeeds.
 	}
 	newCount, total := a.mergeSMS(messages)
 	if a.smsAutoCleanupME && len(messages) > 0 {
@@ -739,6 +787,10 @@ func (a *app) markUSBATDetached(reason string) {
 func (a *app) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", a.health)
+	mux.HandleFunc("GET /api/history", a.listHistory)
+	mux.HandleFunc("GET /api/history/backup", a.historyBackupStatus)
+	mux.HandleFunc("POST /api/history/backup", a.historyBackupAction)
+	mux.HandleFunc("GET /api/alerts", a.communicationAlerts)
 	mux.HandleFunc("GET /api/status", a.status)
 	mux.HandleFunc("GET /api/sms", a.listSMS)
 	mux.HandleFunc("GET /api/sms/status", a.smsStatus)
@@ -746,6 +798,13 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("POST /api/sms/refresh", a.refreshSMS)
 	mux.HandleFunc("POST /api/sms/clear-module", a.clearModuleSMS)
 	mux.HandleFunc("POST /api/at", a.executeAT)
+	mux.HandleFunc("GET /api/calls", a.callStatus)
+	mux.HandleFunc("POST /api/calls", a.callAction)
+	mux.HandleFunc("GET /api/calls/audio", a.moduleAudioStatus)
+	mux.HandleFunc("POST /api/calls/audio/prepare", a.moduleAudioPrepare)
+	mux.HandleFunc("POST /api/calls/audio/lease", a.moduleAudioLease)
+	mux.HandleFunc("POST /api/calls/audio/stop", a.moduleAudioStop)
+	mux.HandleFunc("POST /api/network/apn", a.saveAPN)
 	mux.HandleFunc("GET /api/network", a.networkDiagnostic)
 	mux.HandleFunc("GET /api/network/local", a.localNetworkConnection)
 	mux.HandleFunc("GET /api/network/activity", a.networkActivity)
@@ -1046,6 +1105,7 @@ func (a *app) readUSBATSMS() ([]receivedSMS, error) {
 			continue
 		}
 		for _, item := range items {
+			item.Memory = memory
 			key := item.Sender + "\x00" + item.Content + "\x00" + item.Timestamp.Format(time.RFC3339Nano)
 			if seen[key] {
 				continue
@@ -1309,7 +1369,17 @@ func (a *app) sendSMS(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"sent": true, "segments": 1})
 		return
 	}
+	identity := a.historyIdentity()
 	segments, err := a.sendTextSMS(body.Phone, body.Message)
+	identity = confirmedHistoryIdentity(identity, a.historyIdentity())
+	state := "sent"
+	if err != nil {
+		state = "failed_or_partial"
+	}
+	if archiveErr := a.appendHistory(historyRecord{Kind: "sms", Direction: "outgoing", ICCID: identity, Number: body.Phone, Content: body.Message, State: state, Started: time.Now()}); archiveErr != nil {
+		writeError(w, http.StatusInternalServerError, "发送操作已执行，但记录保存失败；请勿直接重试发送")
+		return
+	}
 	if err != nil {
 		writeError(w, http.StatusBadGateway, err.Error())
 		return
@@ -1828,6 +1898,12 @@ func (a *app) checkProxyRoute(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (a *app) setUSBNetMode(w http.ResponseWriter, r *http.Request) {
+	a.audioMu.Lock()
+	defer a.audioMu.Unlock()
+	if a.audioSession != nil && time.Since(a.audioSession.lastLease) < 50*time.Second {
+		writeError(w, http.StatusConflict, "请先停止模块音频并恢复 USB，再切换网络模式")
+		return
+	}
 	var body struct {
 		Mode int `json:"mode"`
 	}
@@ -1852,6 +1928,12 @@ func (a *app) setUSBNetMode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) rebootModule(w http.ResponseWriter, _ *http.Request) {
+	a.audioMu.Lock()
+	defer a.audioMu.Unlock()
+	if a.audioSession != nil && time.Since(a.audioSession.lastLease) < 50*time.Second {
+		writeError(w, http.StatusConflict, "请先停止模块音频并恢复 USB，再重启模块")
+		return
+	}
 	response, err := a.runATCommand("AT+CFUN=1,1", 3*time.Second)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, err.Error())
