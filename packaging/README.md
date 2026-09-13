@@ -40,6 +40,22 @@ dj4ghub open         重新打开管理页面
 dj4ghub start --demo 启动无硬件演示界面
 ```
 
+## 电话与实验音频
+
+电话页面已包含拨号、接听、挂断与电脑双向音频控制。仅 QDC507GLEFM21 / Linux 3.18.44 已完成短时双向实测。需要已授权 root ADB；程序不会自动开启 ADB 或刷写固件。
+
+可选音频依赖不随发行包分发。安装官方 Android Platform Tools（adb 加入 PATH），从已核验来源准备音频文件后执行：
+
+```sh
+dj4ghub audio-install /本机/运行文件目录
+dj4ghub audio-check
+dj4ghub start
+```
+
+自动读取 `~/Library/Application Support/DJ4Hub/experimental-audio`；也支持该目录中的 `platform-tools/adb`。来源和固定哈希见 [研究记录](docs/QDC507_AUDIO_RESEARCH.md)。导入不会执行驱动或覆盖已有无效文件。
+
+电话页拨号会自动初始化并连接电脑音频，首次需要允许短暂 USB 重连；以后进入电话页提前初始化，挂断只关闭电脑音频、保留模块待机。关闭页面或丢失心跳后恢复 USB，可手动停止待机。建议戴耳机。正在响铃但音频未就绪时不强行重连，可取消“自动使用电脑通话音频”仅接听。没有依赖时也可取消该选项使用拨号控制。驱动在模块重启后清除。
+
 ## macOS 安全提示
 
 当前预览包尚未经过 Apple Developer ID 公证。请优先核对 Release 提供的 SHA-256。若 macOS 仍阻止已确认来源的文件，可在当前发行包目录执行：

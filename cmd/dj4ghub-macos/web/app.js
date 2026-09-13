@@ -8,6 +8,8 @@ let networkTrafficInFlight = false;
 let networkActivityTimer = null;
 let networkActivityInFlight = false;
 let networkActivityCountdown = 5;
+let currentSIMPhoneNumber = "";
+let simPhoneNumberRevealed = false;
 
 function setThemePreference(theme) {
   if (theme === "light" || theme === "dark") {
@@ -250,7 +252,7 @@ async function loadSidebarConnection() {
     }
     $("#sidebar-connection-detail").textContent = [connection.interface, connection.ipv4].filter(Boolean).join(" · ");
     const state = $("#sidebar-connection-state");
-    state.textContent = connection.is_default ? "默认出口" : "已连接";
+    state.textContent = connection.is_default ? "macOS 出口" : "已连接";
     state.classList.toggle("is-secondary", !connection.is_default);
     panel.hidden = false;
   } catch (_) {
@@ -268,6 +270,35 @@ function signalTone(dbm) {
   return "bad";
 }
 
+function renderSIMPhoneNumber(value, simInserted) {
+  const phoneNumber = String(value || "").trim();
+  const empty = $("#sim-phone-empty");
+  const actions = $("#sim-phone-actions");
+  const toggle = $("#sim-phone-toggle");
+  const copy = $("#sim-phone-copy");
+
+  if (!phoneNumber) {
+    currentSIMPhoneNumber = "";
+    simPhoneNumberRevealed = false;
+    empty.textContent = simInserted ? "SIM 未存储号码" : "卡片状态";
+    empty.hidden = false;
+    actions.hidden = true;
+    toggle.textContent = "--";
+    copy.disabled = true;
+    return;
+  }
+
+  if (phoneNumber !== currentSIMPhoneNumber) {
+    currentSIMPhoneNumber = phoneNumber;
+    simPhoneNumberRevealed = false;
+  }
+  empty.hidden = true;
+  actions.hidden = false;
+  toggle.textContent = simPhoneNumberRevealed ? phoneNumber : maskPhoneNumber(phoneNumber);
+  toggle.title = simPhoneNumberRevealed ? "隐藏本机号码" : "显示完整本机号码";
+  copy.disabled = false;
+}
+
 async function loadStatus() {
   try {
     const status = await api("/api/status");
@@ -282,6 +313,7 @@ async function loadStatus() {
       status.sim_inserted ? "已插入" : (status.usb_device ? "待读取" : "未检测到"),
       status.sim_inserted ? "good" : (status.usb_device ? "warn" : "bad"),
     );
+    renderSIMPhoneNumber(status.phone_number, status.sim_inserted);
     const workMode = Object.prototype.hasOwnProperty.call(status, "usbnet_mode")
       ? displayWorkMode(status.usbnet_mode)
       : displayWorkMode(null);
@@ -296,6 +328,7 @@ async function loadStatus() {
     $("#device-summary").textContent = error.message;
     setHeaderDeviceState(false, "设备离线");
     setSidebarDeviceState(false);
+    renderSIMPhoneNumber("", false);
     setWorkModeControl(null);
   }
 }
@@ -562,6 +595,18 @@ function setESIMHealthPolling(enabled) {
   }, 30000);
 }
 
+function showESIMCardState(title, detail, tone = "") {
+  const panel = $("#esim-card-state");
+  panel.className = `esim-card-state${tone ? ` ${tone}` : ""}`;
+  $("#esim-card-state-title").textContent = title;
+  $("#esim-card-state-detail").textContent = detail;
+  panel.hidden = false;
+}
+
+function hideESIMCardState() {
+  $("#esim-card-state").hidden = true;
+}
+
 function diagnosticCard(label, value, detail = "") {
   const card = document.createElement("div");
   card.className = "diagnostic-card";
@@ -632,6 +677,26 @@ async function runNetworkCheck(label, path, button) {
   }
 }
 
+function renderNetworkRecovery(diag) {
+  const panel = $("#network-recovery");
+  const service = diag.network_service;
+  if (!service || diag.usb_network_ready) {
+    panel.hidden = true;
+    return;
+  }
+
+  const identity = [service.name, service.device].filter(Boolean).join(" · ");
+  const disabled = Boolean(service.disabled);
+  $("#network-recovery-title").textContent = disabled
+    ? "macOS 已禁用当前 USB 网卡"
+    : "USB 网卡尚未取得 DHCP 地址";
+  $("#network-recovery-detail").textContent = disabled
+    ? `${identity} 已存在，但网络服务处于禁用状态。启用后将重新请求地址。`
+    : `${identity} 已启用，但当前没有 IPv4 地址。可以让 macOS 重新请求 DHCP。`;
+  $("#enable-network-service").textContent = disabled ? "启用并获取 IP" : "重新请求 DHCP";
+  panel.hidden = false;
+}
+
 async function loadNetwork() {
   const grid = $("#network-grid");
   const ifaceList = $("#network-interfaces");
@@ -647,29 +712,58 @@ async function loadNetwork() {
     const usb = diag.usb_device
       ? `${diag.usb_device.vendor || ""} ${diag.usb_device.product || ""} (${diag.usb_device.vendor_id}:${diag.usb_device.product_id})`
       : "未检测到";
+    const service = diag.network_service;
+    let usbNetworkValue = "未识别";
+    let usbNetworkDetail = "macOS 网络接口";
+    let usbNetworkTone = "is-bad";
+    if (service?.disabled) {
+      usbNetworkValue = "服务已禁用";
+      usbNetworkDetail = [service.name, service.device].filter(Boolean).join(" · ");
+    } else if (diag.usb_network_ready) {
+      usbNetworkValue = service?.device ? `${service.device} 已连接` : "已连接";
+      usbNetworkDetail = service?.ipv4 || "已取得 DHCP 地址";
+      usbNetworkTone = "is-good";
+    } else if (diag.usb_network_present) {
+      usbNetworkValue = "等待 DHCP";
+      usbNetworkDetail = service?.device || "macOS 已识别接口";
+      usbNetworkTone = "is-warn";
+    }
     const route = diag.default_route || {};
     const routeText = route.interface || "未知";
+    const routeUsesUSB = Boolean(service?.device && route.interface === service.device);
+    let routeDetail = route.gateway ? `网关 ${route.gateway}` : "macOS 当前默认路由";
+    if (routeUsesUSB) {
+      routeDetail += " · 公网尚未验证";
+    }
     const path = document.createElement("div");
     path.className = "network-path";
     path.append(
       networkPathStep("蜂窝数据", active ? `已激活 ${active}` : "未激活", addresses || "等待分配蜂窝 IP", active ? "is-good" : "is-warn"),
-      networkPathStep("USB 网卡", diag.usb_network_present ? "已识别" : "未识别", "macOS 网络接口", diag.usb_network_present ? "is-good" : "is-bad"),
-      networkPathStep("默认出口", routeText, route.gateway ? `网关 ${route.gateway}` : "macOS 当前默认路由", route.interface ? "is-good" : "is-warn"),
+      networkPathStep("USB 网卡", usbNetworkValue, usbNetworkDetail, usbNetworkTone),
+      networkPathStep("macOS 出口", routeText, routeDetail, routeUsesUSB ? "is-good" : "is-warn"),
     );
     const facts = document.createElement("dl");
     facts.className = "network-facts";
     facts.append(
       networkFact("USBNET", diag.usbnet_mode ?? "未知"),
       networkFact("APN", apns || "无"),
+      networkFact("macOS 服务", service ? `${service.name} · ${service.disabled ? "已禁用" : "已启用"}` : "未创建"),
       networkFact("USB 设备", usb),
     );
     grid.className = "network-summary";
     grid.replaceChildren(path, facts);
 
     const errorText = diag.errors ? ` · 错误：${Object.values(diag.errors).join("；")}` : "";
-    $("#network-status").textContent = diag.usb_network_present
-      ? `macOS 已识别 USB 网络接口${errorText}`
-      : `蜂窝侧可能已通，但 macOS 尚未识别 USB 网卡${errorText}`;
+    if (service?.disabled) {
+      $("#network-status").textContent = `macOS 网络服务已禁用${errorText}`;
+    } else if (diag.usb_network_ready) {
+      $("#network-status").textContent = `USB 网卡已连接并取得地址 · 公网尚未验证${errorText}`;
+    } else if (diag.usb_network_present) {
+      $("#network-status").textContent = `macOS 已识别 USB 网卡，正在等待 DHCP${errorText}`;
+    } else {
+      $("#network-status").textContent = `蜂窝侧可能已通，但 macOS 尚未识别 USB 网卡${errorText}`;
+    }
+    renderNetworkRecovery(diag);
 
     const interfaces = Array.isArray(diag.mac_interfaces) ? diag.mac_interfaces : [];
     if (!interfaces.length) {
@@ -696,7 +790,31 @@ async function loadNetwork() {
     grid.textContent = "网络摘要暂不可用";
     ifaceList.className = "list empty";
     ifaceList.textContent = "读取失败";
+    $("#network-recovery").hidden = true;
     notice(error.message);
+  }
+}
+
+async function enableNetworkService() {
+  const confirmed = await showModal({
+    title: "启用 macOS USB 网卡",
+    message: "将启用当前模块对应的网络服务并重新请求 DHCP。macOS 可能要求管理员授权。",
+    confirmLabel: "继续启用",
+  });
+  if (!confirmed) return;
+  const button = $("#enable-network-service");
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "正在启用…";
+  try {
+    const result = await api("/api/network/enable-service", { method: "POST" });
+    notice(result.summary || "网络服务已处理");
+    await Promise.all([loadNetwork(), loadSidebarConnection()]);
+  } catch (error) {
+    notice(error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
   }
 }
 
@@ -880,6 +998,37 @@ async function setUSBNetMode(mode) {
   }
 }
 
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function waitForUSBNetwork(status, timeoutMilliseconds = 60000) {
+  const startedAt = Date.now();
+  let lastState = "等待模块重新枚举";
+  while (Date.now() - startedAt < timeoutMilliseconds) {
+    try {
+      const diag = await api("/api/network");
+      setUSBNetModeSelector(diag.usbnet_mode);
+      if (diag.usb_network_ready) return diag;
+      if (diag.network_service?.disabled) {
+        lastState = `${diag.network_service.name} 已识别，但 macOS 网络服务处于禁用状态`;
+      } else if (diag.usb_network_present) {
+        lastState = "USB 网卡已出现，正在等待 DHCP 地址";
+      } else if (diag.usb_device) {
+        lastState = "模块已重新连接，正在等待 USB 网卡出现";
+      } else {
+        lastState = "USB 正在重新枚举";
+      }
+    } catch (error) {
+      lastState = `等待设备恢复：${error.message}`;
+    }
+    const secondsLeft = Math.max(1, Math.ceil((timeoutMilliseconds - (Date.now() - startedAt)) / 1000));
+    status.textContent = `${lastState} · 最长等待 ${secondsLeft}s`;
+    await wait(2500);
+  }
+  throw new Error(`${lastState}，未能在 60 秒内完成上网准备`);
+}
+
 async function switchWorkMode(mode, label, button) {
   if (button.getAttribute("aria-pressed") === "true") {
     notice(`当前已是${label}`);
@@ -887,7 +1036,9 @@ async function switchWorkMode(mode, label, button) {
   }
   const confirmed = await showModal({
     title: `切换到${label}`,
-    message: `将写入 usbnet=${mode} 并重启模块，USB 会短暂断开。`,
+    message: mode === 1
+      ? "将切换并重启模块，等待 macOS 网卡取得地址，再通过百度、Google 等地址自动验证公网。"
+      : `将写入 usbnet=${mode} 并重启模块，USB 会短暂断开。`,
     confirmLabel: "确认切换",
   });
   if (!confirmed) return;
@@ -903,18 +1054,34 @@ async function switchWorkMode(mode, label, button) {
     });
     status.textContent = `usbnet 已写入 ${result.mode}，正在重启模块...`;
     await api("/api/network/reboot-module", { method: "POST" });
-    status.textContent = `${label}已写入，等待模块重新枚举后自动刷新。`;
-    notice(`${label}切换中`);
-    setTimeout(loadStatus, 8000);
-    setTimeout(loadNetwork, 12000);
-    setTimeout(() => {
-      status.textContent = `${label}切换完成后，请确认状态卡和网络诊断。`;
-      buttons.forEach((item) => { item.disabled = false; });
-    }, 13000);
+    if (mode === 1) {
+      status.textContent = "上网模式已写入，等待 USB 网卡和 DHCP...";
+      notice("正在准备上网模式");
+      const diag = await waitForUSBNetwork(status);
+      const interfaceName = diag.network_service?.device || "USB 网卡";
+      status.textContent = `${interfaceName} 已取得地址，正在验证公网...`;
+      const connectivity = await api("/api/network/check-4g", { method: "POST" });
+      renderNetworkCheck("4G 公网", connectivity);
+      await Promise.all([loadStatus(), loadNetwork(), loadSidebarConnection()]);
+      if (connectivity.ok) {
+        status.textContent = `上网模式已就绪 · ${connectivity.summary}`;
+        notice("上网模式已就绪");
+      } else {
+        status.textContent = `上网模式已切换，但${connectivity.summary}`;
+        notice(connectivity.summary);
+      }
+    } else {
+      status.textContent = `${label}已写入，等待模块重新枚举后自动刷新。`;
+      notice(`${label}切换中`);
+      await wait(9000);
+      await Promise.all([loadStatus(), loadNetwork(), loadSidebarConnection()]);
+      status.textContent = `${label}切换完成。`;
+    }
   } catch (error) {
     status.hidden = false;
     status.textContent = `${label}切换失败：${error.message}`;
     notice(error.message);
+  } finally {
     buttons.forEach((item) => { item.disabled = false; });
   }
 }
@@ -946,23 +1113,30 @@ async function loadESIM() {
   $("#esim-chip").hidden = true;
   $("#esim-chip").replaceChildren();
   runtime.hidden = true;
-  download.hidden = false;
-  profilePanel.hidden = false;
-  phonebook.hidden = false;
+  download.hidden = true;
+  profilePanel.hidden = true;
+  phonebook.hidden = true;
   list.className = "list empty";
   list.textContent = "正在读取 eUICC";
   status.textContent = "正在通过 AT+CCHO/CGLA 读取 eUICC/eSIM 卡片";
+  showESIMCardState("正在识别卡片", "正在确认当前卡片是否支持 eUICC Profile 管理。");
   try {
     const overview = await api("/api/esim");
     if (overview.card_type === "physical_sim") {
       status.textContent = overview.message;
       list.textContent = overview.message;
-      download.hidden = true;
-      profilePanel.hidden = true;
-      phonebook.hidden = true;
+      showESIMCardState(
+        "当前是实体 SIM 卡",
+        "短信与蜂窝上网功能可以正常使用；这张卡不包含可管理的 eUICC Profile。",
+        "is-physical",
+      );
       setESIMHealthPolling(false);
       return;
     }
+    hideESIMCardState();
+    download.hidden = false;
+    profilePanel.hidden = false;
+    phonebook.hidden = false;
     const notesResponse = await api("/api/esim/module-notes");
     const notes = notesResponse.notes || {};
     const profiles = profileRows(overview);
@@ -1160,6 +1334,7 @@ async function loadESIM() {
   } catch (error) {
     status.textContent = `读取失败：${error.message}`;
     list.textContent = error.message;
+    showESIMCardState("暂时无法读取卡片", error.message, "is-error");
     setESIMHealthPolling(false);
   }
 }
@@ -1270,6 +1445,14 @@ $("#refresh").addEventListener("click", async () => {
   await Promise.all([loadStatus(), loadSMS(), loadSidebarConnection()]);
   notice("状态已刷新");
 });
+$("#sim-phone-toggle").addEventListener("click", () => {
+  if (!currentSIMPhoneNumber) return;
+  simPhoneNumberRevealed = !simPhoneNumberRevealed;
+  renderSIMPhoneNumber(currentSIMPhoneNumber, true);
+});
+$("#sim-phone-copy").addEventListener("click", () => {
+  if (currentSIMPhoneNumber) copyIdentifier(currentSIMPhoneNumber, "本机号码");
+});
 $("#refresh-sms").addEventListener("click", async () => {
   const button = $("#refresh-sms");
   button.disabled = true;
@@ -1312,12 +1495,13 @@ $("#clear-module-sms").addEventListener("click", async () => {
 $("#refresh-esim").addEventListener("click", loadESIM);
 $("#probe-esim-phonebook").addEventListener("click", probeESIMPhonebook);
 $("#refresh-network").addEventListener("click", loadNetwork);
+$("#enable-network-service").addEventListener("click", enableNetworkService);
 $("#workmode-sms").addEventListener("click", () =>
   switchWorkMode(0, "短信模式", $("#workmode-sms")));
 $("#workmode-network").addEventListener("click", () =>
   switchWorkMode(1, "上网模式", $("#workmode-network")));
 $("#check-4g-route").addEventListener("click", () =>
-  runNetworkCheck("4G 出口", "/api/network/check-4g", $("#check-4g-route")));
+  runNetworkCheck("4G 公网", "/api/network/check-4g", $("#check-4g-route")));
 $("#check-proxy-route").addEventListener("click", () =>
   runNetworkCheck("代理", "/api/network/check-proxy", $("#check-proxy-route")));
 $("#usbnet-mode-0").addEventListener("click", () => setUSBNetMode(0));

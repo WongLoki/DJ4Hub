@@ -44,3 +44,12 @@ func TestParseCNUM(t *testing.T) {
 		})
 	}
 }
+
+func TestGetFullStatusIncludesPhoneNumber(t *testing.T) {
+	manager := &Manager{msisdn: "+8613800138000"}
+
+	status := manager.GetFullStatus()
+	if status.PhoneNumber != "+8613800138000" {
+		t.Fatalf("GetFullStatus().PhoneNumber=%q want %q", status.PhoneNumber, "+8613800138000")
+	}
+}

@@ -39,6 +39,7 @@ import (
 var webAssets embed.FS
 
 type receivedSMS struct {
+	Memory    string    `json:"memory,omitempty"`
 	Sender    string    `json:"sender"`
 	Content   string    `json:"content"`
 	Code      string    `json:"code,omitempty"`
@@ -75,6 +76,13 @@ type modulePhonebookEntry struct {
 }
 
 type app struct {
+	alertsStarted     time.Time
+	historyMu         sync.Mutex
+	history           *communicationHistory
+	smsPollMu         sync.Mutex
+	smsCardIdentity   string
+	audioMu           sync.Mutex
+	audioSession      *moduleAudioSession
 	modem             *modem.Manager
 	esimMu            sync.RWMutex
 	esim              *esim.Manager
@@ -128,17 +136,19 @@ type usbDeviceStatus struct {
 }
 
 type networkDiagnostic struct {
-	USBNetMode        string            `json:"usbnet_mode"`
-	USBCfg            string            `json:"usbcfg"`
-	PDPContexts       []pdpContext      `json:"pdp_contexts"`
-	ActiveContexts    []int             `json:"active_contexts"`
-	PDPAddresses      []string          `json:"pdp_addresses"`
-	MacInterfaces     []macNetInterface `json:"mac_interfaces"`
-	DefaultRoute      macDefaultRoute   `json:"default_route"`
-	USBNetworkPresent bool              `json:"usb_network_present"`
-	USBDevice         *usbDeviceStatus  `json:"usb_device,omitempty"`
-	Raw               map[string]string `json:"raw,omitempty"`
-	Errors            map[string]string `json:"errors,omitempty"`
+	USBNetMode        string             `json:"usbnet_mode"`
+	USBCfg            string             `json:"usbcfg"`
+	PDPContexts       []pdpContext       `json:"pdp_contexts"`
+	ActiveContexts    []int              `json:"active_contexts"`
+	PDPAddresses      []string           `json:"pdp_addresses"`
+	MacInterfaces     []macNetInterface  `json:"mac_interfaces"`
+	DefaultRoute      macDefaultRoute    `json:"default_route"`
+	USBNetworkPresent bool               `json:"usb_network_present"`
+	USBNetworkReady   bool               `json:"usb_network_ready"`
+	NetworkService    *macNetworkService `json:"network_service,omitempty"`
+	USBDevice         *usbDeviceStatus   `json:"usb_device,omitempty"`
+	Raw               map[string]string  `json:"raw,omitempty"`
+	Errors            map[string]string  `json:"errors,omitempty"`
 }
 
 type pdpContext struct {
@@ -215,11 +225,30 @@ func main() {
 	var listen string
 	var demo bool
 	var activate bool
+	var audioCheck bool
+	var audioInstall string
 	flag.StringVar(&port, "port", "", "AT serial port; auto-detected when omitted")
 	flag.StringVar(&listen, "listen", "127.0.0.1:7575", "HTTP listen address")
 	flag.BoolVar(&demo, "demo", false, "run the web UI with simulated modem data")
 	flag.BoolVar(&activate, "activate", false, "prepare the DJI USB network interface and exit")
+	flag.BoolVar(&audioCheck, "audio-check", false, "check local audio dependencies without accessing hardware")
+	flag.StringVar(&audioInstall, "audio-install", "", "import hash-verified local module audio files")
 	flag.Parse()
+
+	if audioInstall != "" {
+		if err := installAudioRuntime(audioInstall); err != nil {
+			log.Fatal(err)
+		}
+		log.Print("音频运行文件已导入；执行 dj4ghub audio-check 检查 ADB。未连接设备或加载驱动。")
+		return
+	}
+	if audioCheck {
+		if _, _, err := moduleAudioRuntime(); err != nil {
+			log.Fatal(err)
+		}
+		log.Print("本机音频运行文件及 ADB 已就绪；硬件兼容性将在准备时检查。")
+		return
+	}
 
 	if activate {
 		if err := activateDJINetwork(os.Stdout); err != nil {
@@ -358,6 +387,10 @@ func (a *app) installESIMManager(manager *esim.Manager, switchAllowed bool) bool
 }
 
 func serve(instance *app, listen string) {
+	instance.alertsStarted = time.Now()
+	if err := instance.initHistory(); err != nil {
+		log.Fatalf("open communication history: %v", err)
+	}
 	server := &http.Server{
 		Addr:              listen,
 		Handler:           instance.routes(),
@@ -365,6 +398,8 @@ func serve(instance *app, listen string) {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	go instance.monitorCallHistory(ctx)
+	go instance.monitorHistoryBackup(ctx)
 
 	if !instance.demo {
 		log.Printf("DJ 4G Hub is using %s", instance.port)
@@ -574,6 +609,9 @@ func usbSpeedName(speed int) string {
 }
 
 func (a *app) recordSMS(sender, content string, timestamp time.Time) {
+	if err := a.archiveReceivedSMS([]receivedSMS{{Sender: sender, Content: content, Timestamp: timestamp}}, ""); err != nil {
+		log.Printf("SMS archive failed: %v", err)
+	}
 	a.mergeSMS([]receivedSMS{{
 		Sender: sender, Content: content, Timestamp: timestamp,
 	}})
@@ -643,6 +681,8 @@ func (a *app) startSMSPoller(ctx context.Context) {
 }
 
 func (a *app) pollSMSOnce() error {
+	a.smsPollMu.Lock()
+	defer a.smsPollMu.Unlock()
 	if a.demo || a.modem != nil {
 		return nil
 	}
@@ -650,11 +690,21 @@ func (a *app) pollSMSOnce() error {
 		a.setSMSPollStatus(err)
 		return err
 	}
+	identity := a.historyIdentity()
+	if identity == "" || identity != a.smsCardIdentity {
+		a.smsReassembler = smscodec.NewReassembler()
+	}
+	a.smsCardIdentity = identity
 	messages, err := a.readUSBATSMS()
 	if err != nil {
 		a.resetUSBATIfGone(err)
 		a.setSMSPollStatus(err)
 		return err
+	}
+	identity = confirmedHistoryIdentity(identity, a.historyIdentity())
+	if err := a.archiveReceivedSMS(messages, identity); err != nil {
+		a.setSMSPollStatus(err)
+		return err // Never erase module messages before their durable archive succeeds.
 	}
 	newCount, total := a.mergeSMS(messages)
 	if a.smsAutoCleanupME && len(messages) > 0 {
@@ -737,6 +787,10 @@ func (a *app) markUSBATDetached(reason string) {
 func (a *app) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", a.health)
+	mux.HandleFunc("GET /api/history", a.listHistory)
+	mux.HandleFunc("GET /api/history/backup", a.historyBackupStatus)
+	mux.HandleFunc("POST /api/history/backup", a.historyBackupAction)
+	mux.HandleFunc("GET /api/alerts", a.communicationAlerts)
 	mux.HandleFunc("GET /api/status", a.status)
 	mux.HandleFunc("GET /api/sms", a.listSMS)
 	mux.HandleFunc("GET /api/sms/status", a.smsStatus)
@@ -744,12 +798,20 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("POST /api/sms/refresh", a.refreshSMS)
 	mux.HandleFunc("POST /api/sms/clear-module", a.clearModuleSMS)
 	mux.HandleFunc("POST /api/at", a.executeAT)
+	mux.HandleFunc("GET /api/calls", a.callStatus)
+	mux.HandleFunc("POST /api/calls", a.callAction)
+	mux.HandleFunc("GET /api/calls/audio", a.moduleAudioStatus)
+	mux.HandleFunc("POST /api/calls/audio/prepare", a.moduleAudioPrepare)
+	mux.HandleFunc("POST /api/calls/audio/lease", a.moduleAudioLease)
+	mux.HandleFunc("POST /api/calls/audio/stop", a.moduleAudioStop)
+	mux.HandleFunc("POST /api/network/apn", a.saveAPN)
 	mux.HandleFunc("GET /api/network", a.networkDiagnostic)
 	mux.HandleFunc("GET /api/network/local", a.localNetworkConnection)
 	mux.HandleFunc("GET /api/network/activity", a.networkActivity)
 	mux.HandleFunc("GET /api/network/traffic", a.networkTraffic)
 	mux.HandleFunc("POST /api/network/check-4g", a.check4GRoute)
 	mux.HandleFunc("POST /api/network/check-proxy", a.checkProxyRoute)
+	mux.HandleFunc("POST /api/network/enable-service", a.enableNetworkService)
 	mux.HandleFunc("POST /api/network/usbnet", a.setUSBNetMode)
 	mux.HandleFunc("POST /api/network/reboot-module", a.rebootModule)
 	mux.HandleFunc("GET /api/esim", a.esimOverview)
@@ -793,6 +855,7 @@ func (a *app) status(w http.ResponseWriter, _ *http.Request) {
 			Firmware:      "EG25GGBR07A08M2G",
 			ICCID:         "89860123456789012345",
 			IMSI:          "460001234567890",
+			PhoneNumber:   "+8613800138000",
 			Operator:      "China Mobile",
 			SimInserted:   true,
 			SignalDBM:     -73,
@@ -868,6 +931,7 @@ func (a *app) usbATStatus() (modem.DeviceStatus, error) {
 	copsResp, _ := a.usbAT.Command("AT+COPS?", 3*time.Second)
 	qccidResp, _ := a.usbAT.Command("AT+QCCID", 3*time.Second)
 	cimiResp, _ := a.usbAT.Command("AT+CIMI", 3*time.Second)
+	cnumResp, _ := a.usbAT.Command("AT+CNUM", 3*time.Second)
 	qnwinfoResp, _ := a.usbAT.Command("AT+QNWINFO", 3*time.Second)
 	usbnetResp, _ := a.usbAT.Command(`AT+QCFG="usbnet"`, 3*time.Second)
 
@@ -885,6 +949,7 @@ func (a *app) usbATStatus() (modem.DeviceStatus, error) {
 		Firmware:      parseUSBATFirmware(firmwareResp),
 		ICCID:         parseUSBATPrefixed(qccidResp, "+QCCID:"),
 		IMSI:          parseUSBATIMSI(cimiResp),
+		PhoneNumber:   modem.ParseMSISDNResponse(cnumResp),
 		Operator:      parseUSBATOperator(copsResp),
 		SimInserted:   strings.Contains(strings.ToUpper(cpinResp), "READY"),
 		SignalDBM:     parseUSBATCSQDBM(csqResp),
@@ -1040,6 +1105,7 @@ func (a *app) readUSBATSMS() ([]receivedSMS, error) {
 			continue
 		}
 		for _, item := range items {
+			item.Memory = memory
 			key := item.Sender + "\x00" + item.Content + "\x00" + item.Timestamp.Format(time.RFC3339Nano)
 			if seen[key] {
 				continue
@@ -1303,7 +1369,17 @@ func (a *app) sendSMS(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"sent": true, "segments": 1})
 		return
 	}
+	identity := a.historyIdentity()
 	segments, err := a.sendTextSMS(body.Phone, body.Message)
+	identity = confirmedHistoryIdentity(identity, a.historyIdentity())
+	state := "sent"
+	if err != nil {
+		state = "failed_or_partial"
+	}
+	if archiveErr := a.appendHistory(historyRecord{Kind: "sms", Direction: "outgoing", ICCID: identity, Number: body.Phone, Content: body.Message, State: state, Started: time.Now()}); archiveErr != nil {
+		writeError(w, http.StatusInternalServerError, "发送操作已执行，但记录保存失败；请勿直接重试发送")
+		return
+	}
 	if err != nil {
 		writeError(w, http.StatusBadGateway, err.Error())
 		return
@@ -1409,14 +1485,27 @@ func (a *app) networkDiagnostic(w http.ResponseWriter, _ *http.Request) {
 	}()
 	raw := make(map[string]string)
 	errs := make(map[string]string)
+	device := a.currentUSBDevice()
 	diag := networkDiagnostic{
-		USBDevice:     a.currentUSBDevice(),
+		USBDevice:     device,
 		MacInterfaces: discoverMacNetworkInterfaces(),
 		DefaultRoute:  discoverMacDefaultRoute(),
 		Raw:           raw,
 		Errors:        errs,
 	}
-	diag.USBNetworkPresent = hasLikelyUSBNetworkInterface(diag.MacInterfaces)
+	currentProduct := ""
+	if device != nil {
+		currentProduct = device.Product
+	}
+	diag.NetworkService = currentDJINetworkService(discoverMacNetworkServices(), diag.MacInterfaces, currentProduct)
+	diag.USBNetworkPresent = diag.NetworkService != nil && diag.NetworkService.InterfacePresent
+	if diag.NetworkService == nil {
+		diag.USBNetworkPresent = hasLikelyUSBNetworkInterface(diag.MacInterfaces)
+	}
+	diag.USBNetworkReady = networkServiceReady(diag.NetworkService)
+	if diag.NetworkService == nil {
+		diag.USBNetworkReady = diag.USBNetworkPresent
+	}
 
 	commands := map[string]string{
 		"usbnet":  `AT+QCFG="usbnet"`,
@@ -1443,6 +1532,58 @@ func (a *app) networkDiagnostic(w http.ResponseWriter, _ *http.Request) {
 		diag.Errors = nil
 	}
 	writeJSON(w, http.StatusOK, diag)
+}
+
+func (a *app) enableNetworkService(w http.ResponseWriter, _ *http.Request) {
+	device := a.currentUSBDevice()
+	if device == nil {
+		writeError(w, http.StatusConflict, "未检测到兼容 USB 设备")
+		return
+	}
+	service := currentDJINetworkService(discoverMacNetworkServices(), discoverMacNetworkInterfaces(), device.Product)
+	if service == nil {
+		writeError(w, http.StatusConflict, "未找到当前模块对应的 macOS 网络服务")
+		return
+	}
+	if networkServiceReady(service) {
+		writeJSON(w, http.StatusOK, networkServiceRepairResult{
+			Ready:          true,
+			Summary:        fmt.Sprintf("%s 已经可用", service.Name),
+			NetworkService: service,
+		})
+		return
+	}
+	if a.demo {
+		demoService := *service
+		demoService.Disabled = false
+		demoService.InterfacePresent = true
+		demoService.InterfaceStatus = "active"
+		demoService.IPv4 = "192.168.225.23"
+		writeJSON(w, http.StatusOK, networkServiceRepairResult{
+			Ready:          true,
+			Summary:        "演示：网络服务已启用并取得 DHCP 地址",
+			NetworkService: &demoService,
+		})
+		return
+	}
+	if err := enableMacNetworkService(service.Name); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	service = waitForMacNetworkService(service.Name, device.Product, networkServiceDHCPWait)
+	if networkServiceReady(service) {
+		writeJSON(w, http.StatusOK, networkServiceRepairResult{
+			Ready:          true,
+			Summary:        fmt.Sprintf("%s 已启用，已获取 IP %s", service.Name, service.IPv4),
+			NetworkService: service,
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, networkServiceRepairResult{
+		Ready:          false,
+		Summary:        "网络服务已启用，macOS 仍在等待 DHCP 地址",
+		NetworkService: service,
+	})
 }
 
 func (a *app) localNetworkConnection(w http.ResponseWriter, _ *http.Request) {
@@ -1650,40 +1791,71 @@ func sessionTrafficFromCounters(current, baseline networkByteCounters) (rx, tx, 
 	return rx, tx, rx + tx
 }
 
-func (a *app) check4GRoute(w http.ResponseWriter, _ *http.Request) {
+func (a *app) check4GRoute(w http.ResponseWriter, r *http.Request) {
 	route := discoverMacDefaultRoute()
 	interfaces := discoverMacNetworkInterfaces()
-	var active *macNetInterface
-	for i := range interfaces {
-		if interfaces[i].Name == route.Interface {
-			active = &interfaces[i]
-			break
-		}
-	}
-	if route.Interface == "" {
+	device := a.currentUSBDevice()
+	if device == nil {
 		writeJSON(w, http.StatusOK, networkCheckResult{
 			OK:      false,
-			Summary: "未读取到默认出口",
-			Detail:  "macOS 没有返回 default route",
+			Summary: "未检测到 4G 模块",
+			Detail:  "请连接兼容 USB 设备后再检测公网连接",
 		})
 		return
 	}
-	if active != nil && active.Name != "en0" && active.Kind == "ethernet" && active.Status == "active" {
+	service := currentDJINetworkService(discoverMacNetworkServices(), interfaces, device.Product)
+	if !networkServiceReady(service) {
+		writeJSON(w, http.StatusOK, networkCheckResult{
+			OK:      false,
+			Summary: "4G 网卡尚未就绪",
+			Detail:  "macOS 尚未在当前 USB 网卡上取得可用 IPv4 地址",
+		})
+		return
+	}
+	if a.demo {
 		writeJSON(w, http.StatusOK, networkCheckResult{
 			OK:      true,
-			Summary: "当前正在走 4G 模块",
-			Detail:  fmt.Sprintf("默认出口 %s -> %s，IP %s", route.Interface, route.Gateway, active.IPv4),
+			Summary: "演示：4G 公网连接正常",
+			Detail:  fmt.Sprintf("已通过 %s 模拟公网验证", service.Device),
 		})
 		return
 	}
-	detail := fmt.Sprintf("默认出口 %s -> %s", route.Interface, route.Gateway)
-	if active != nil && active.IPv4 != "" {
-		detail += "，IP " + active.IPv4
+
+	ctx, cancel := context.WithTimeout(r.Context(), cellularProbeTimeout)
+	defer cancel()
+	target, dnsOK, err := probeCellularInternet(ctx, service.Device, service.IPv4)
+	routeDetail := "macOS 未返回系统出口"
+	if route.Interface != "" {
+		routeDetail = fmt.Sprintf("macOS 系统出口为 %s", route.Interface)
+		if route.Gateway != "" {
+			routeDetail += " -> " + route.Gateway
+		}
+	}
+	if err != nil {
+		writeJSON(w, http.StatusOK, networkCheckResult{
+			OK:      false,
+			Summary: "4G 网卡已就绪，但公网不可达",
+			Detail:  fmt.Sprintf("已强制通过 %s（%s）请求公网但未收到响应；%s。请检查 APN、SIM 漫游权限或套餐状态", service.Device, service.IPv4, routeDetail),
+		})
+		log.Printf("cellular internet probe failed on %s (%s): %v", service.Device, service.IPv4, err)
+		return
+	}
+	if !dnsOK {
+		writeJSON(w, http.StatusOK, networkCheckResult{
+			OK:      false,
+			Summary: "4G 公网可达，但域名访问失败",
+			Detail:  fmt.Sprintf("%s（%s）可访问 %s，但域名检测未通过；请检查 DNS 设置", service.Device, service.IPv4, target),
+		})
+		return
+	}
+	summary := "4G 公网连接正常"
+	if route.Interface != service.Device {
+		summary = "4G 公网可达，但不是 macOS 系统出口"
 	}
 	writeJSON(w, http.StatusOK, networkCheckResult{
-		OK:      false,
-		Summary: "当前没有优先走 4G 模块",
-		Detail:  detail,
+		OK:      true,
+		Summary: summary,
+		Detail:  fmt.Sprintf("已强制通过 %s（%s）访问 %s；%s", service.Device, service.IPv4, target, routeDetail),
 	})
 }
 
@@ -1726,6 +1898,12 @@ func (a *app) checkProxyRoute(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (a *app) setUSBNetMode(w http.ResponseWriter, r *http.Request) {
+	a.audioMu.Lock()
+	defer a.audioMu.Unlock()
+	if a.audioSession != nil && time.Since(a.audioSession.lastLease) < 50*time.Second {
+		writeError(w, http.StatusConflict, "请先停止模块音频并恢复 USB，再切换网络模式")
+		return
+	}
 	var body struct {
 		Mode int `json:"mode"`
 	}
@@ -1750,6 +1928,12 @@ func (a *app) setUSBNetMode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) rebootModule(w http.ResponseWriter, _ *http.Request) {
+	a.audioMu.Lock()
+	defer a.audioMu.Unlock()
+	if a.audioSession != nil && time.Since(a.audioSession.lastLease) < 50*time.Second {
+		writeError(w, http.StatusConflict, "请先停止模块音频并恢复 USB，再重启模块")
+		return
+	}
 	response, err := a.runATCommand("AT+CFUN=1,1", 3*time.Second)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, err.Error())

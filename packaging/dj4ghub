@@ -26,6 +26,8 @@ DJ 4G Hub for macOS
   dj4ghub start          启动并自动打开管理网页
   dj4ghub start --demo   启动无硬件演示模式
   dj4ghub activate       清理模块残留网卡并一次性激活上网模式
+  dj4ghub audio-check    检查本机音频依赖（不操作设备）
+  dj4ghub audio-install DIR  校验并导入本机音频运行文件
   dj4ghub stop           停止正在运行的程序
   dj4ghub status         查看运行状态
   dj4ghub logs           查看实时日志（Ctrl+C 退出日志）
@@ -197,6 +199,14 @@ case "${1:-}" in
     esac
     ;;
   activate) activate_network ;;
+  audio-check) exec "${BINARY}" -audio-check ;;
+  audio-install)
+    if [ "$#" -ne 2 ] || [ ! -d "$2" ]; then
+      printf '用法：dj4ghub audio-install 本机运行文件目录\n' >&2
+      exit 2
+    fi
+    exec "${BINARY}" -audio-install "$2"
+    ;;
   stop) stop_service ;;
   status) show_status ;;
   logs)

@@ -106,6 +106,8 @@ cp "${ROOT_DIR}/packaging/README.md" "${STAGE_DIR}/README.md"
 cp "${ROOT_DIR}/LICENSE" "${STAGE_DIR}/LICENSE"
 cp "${LIBUSB_SOURCE}/COPYING" "${STAGE_DIR}/licenses/libusb-COPYING"
 cp "${ROOT_DIR}/packaging/THIRD_PARTY_NOTICES.md" "${STAGE_DIR}/THIRD_PARTY_NOTICES.md"
+mkdir -p "${STAGE_DIR}/docs"
+cp "${ROOT_DIR}/docs/QDC507_AUDIO_RESEARCH.md" "${STAGE_DIR}/docs/QDC507_AUDIO_RESEARCH.md"
 
 chmod 755 "${STAGE_DIR}/dj4ghub" "${STAGE_DIR}/install" "${STAGE_DIR}/bin/dj4ghub-macos" "${STAGE_DIR}/lib/libusb-1.0.0.dylib"
 codesign --force --sign - "${STAGE_DIR}/lib/libusb-1.0.0.dylib"

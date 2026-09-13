@@ -455,6 +455,12 @@ func parseCNUM(resp string) string {
 	return ""
 }
 
+// ParseMSISDNResponse 解析 AT+CNUM 响应并返回第一个有效本机号码。
+// internal/modem 之外的 USB AT 适配层使用此入口保持号码校验一致。
+func ParseMSISDNResponse(resp string) string {
+	return parseCNUM(resp)
+}
+
 func canonicalPhoneCandidate(v string) string {
 	s := strings.TrimSpace(v)
 	if s == "" {

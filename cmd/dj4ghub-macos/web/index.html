@@ -52,6 +52,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.8A2.8 2.8 0 0 1 7.8 4h8.4A2.8 2.8 0 0 1 19 6.8v5.4a2.8 2.8 0 0 1-2.8 2.8H11l-4.5 3v-3.1A2.8 2.8 0 0 1 5 12.2Z"/><path d="M8.5 8.5h7M8.5 11.5h4.7"/></svg>
           <span><strong>短信</strong><small>收件箱与发送</small></span>
         </button>
+        <button class="tab" data-view="calls" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h4l2 5-3 2a16 16 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z"/></svg><span><strong>电话</strong><small>拨号与通话音频</small></span></button>
         <button class="tab" data-view="esim" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h6.5L19 7.5V21H8a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z"/><path d="M10 8.5v7M14 8.5v7M8.5 11h7M8.5 14h7"/></svg>
           <span><strong>eSIM / 卡片</strong><small>Profile 管理</small></span>
@@ -115,7 +116,13 @@
           <div class="status-primary"><span>运营商</span><strong id="operator">--</strong><small>蜂窝网络</small></div>
           <div class="status-primary"><span>信号</span><strong id="signal">--</strong><small>接收强度</small></div>
           <div class="status-primary"><span>网络</span><strong id="network-mode">--</strong><small>注册制式</small></div>
-          <div class="status-primary"><span>SIM</span><strong id="sim">--</strong><small>卡片状态</small></div>
+          <div class="status-primary">
+            <span>SIM</span><strong id="sim">--</strong><small id="sim-phone-empty">卡片状态</small>
+            <div id="sim-phone-actions" class="sim-phone-actions" hidden>
+              <button id="sim-phone-toggle" type="button">--</button>
+              <button id="sim-phone-copy" type="button">复制</button>
+            </div>
+          </div>
           <div class="status-primary"><span>工作模式</span><strong id="work-mode">--</strong><small>USBNET</small></div>
           <div><span>实时下载</span><strong id="traffic-rx-rate">--</strong></div>
           <div><span>实时上传</span><strong id="traffic-tx-rate">--</strong></div>
@@ -177,6 +184,8 @@
           </div>
         </div>
         <div id="sms-list" class="list empty">暂无短信</div>
+        <button type="button" class="secondary" data-history="sms">按卡查看短信记录</button>
+        <button type="button" class="secondary" data-enable-alerts>开启来电／短信提示音</button>
       </section>
 
       <section id="esim" class="view">
@@ -187,7 +196,12 @@
             <button id="refresh-esim" class="secondary" type="button">刷新卡片</button>
           </div>
         </div>
-        <details id="esim-download-section" class="fold-panel esim-download">
+        <div id="esim-card-state" class="esim-card-state">
+          <span class="esim-card-state-mark" aria-hidden="true"></span>
+          <strong id="esim-card-state-title">准备读取卡片</strong>
+          <p id="esim-card-state-detail">正在确认当前卡片是否支持 eUICC Profile 管理。</p>
+        </div>
+        <details id="esim-download-section" class="fold-panel esim-download" hidden>
           <summary><span><span class="panel-icon" aria-hidden="true">↓</span><strong>下载新 Profile</strong></span><small>SM-DP+ 激活信息</small></summary>
           <form id="esim-download-form" class="esim-download-grid">
             <label><span>SM-DP+ 地址</span><input id="esim-smdp" placeholder="smdp.example.com" required></label>
@@ -200,7 +214,7 @@
           <p id="esim-download-status" class="inline-status">填写运营商提供的激活信息后才会执行下载。</p>
         </details>
 
-        <details id="esim-profile-panel" class="profile-panel" open>
+        <details id="esim-profile-panel" class="profile-panel" open hidden>
           <summary class="profile-panel-heading"><span class="profile-panel-title"><span class="section-kicker">INSTALLED PROFILES</span><strong>已安装 Profile</strong></span><small>启用、改名或删除卡内 Profile</small></summary>
           <div class="profile-panel-content">
             <div class="profile-tools-grid">
@@ -228,18 +242,26 @@
 
       <section id="network" class="view">
         <div class="view-intro">
-          <div><span class="section-kicker">CONNECTIVITY</span><h2>网络</h2><p>检查蜂窝注册、USB 网卡与默认出口。</p></div>
+          <div><span class="section-kicker">CONNECTIVITY</span><h2>网络</h2><p>检查蜂窝注册、USB 网卡、macOS 出口与公网连通性。</p></div>
           <div class="view-intro-actions">
             <p id="network-status" class="network-status">尚未读取网络状态</p>
             <button id="refresh-network" class="secondary" type="button">刷新诊断</button>
           </div>
         </div>
         <div id="network-grid" class="network-summary"></div>
+        <div class="settings-section apn-settings"><h2>APN 设置</h2><p>选择运营商预设或输入自定义 APN。仅修改主数据连接，保留 IMS 配置。</p><div class="control-panel"><select id="apn-preset" aria-label="运营商预设"><option value="">自定义 / 保留现有设置</option><option value="web">One NZ · web</option></select><input id="apn-value" placeholder="APN" aria-label="APN"><select id="apn-pdn" aria-label="IP 类型"><option>IPV4V6</option><option>IP</option><option>IPV6</option></select><button id="apn-save" type="button">保存 APN</button><button id="apn-read" class="secondary" type="button">读取当前配置</button></div><p id="apn-feedback" role="status"></p></div>
+        <div id="network-recovery" class="network-recovery" hidden>
+          <div>
+            <strong id="network-recovery-title">macOS 网络服务需要处理</strong>
+            <p id="network-recovery-detail">启用当前 USB 网卡服务并重新请求 DHCP 地址。</p>
+          </div>
+          <button id="enable-network-service" type="button">启用网卡</button>
+        </div>
 
         <div class="settings-section">
-          <div class="section-heading"><div><h2>连通性检测</h2><p>确认真实出口与代理链路。</p></div></div>
+          <div class="section-heading"><div><h2>连通性检测</h2><p>强制绑定 USB 网卡，验证真实公网与代理链路。</p></div></div>
           <div class="control-panel">
-            <button id="check-4g-route" class="secondary" type="button">检测 4G 出口</button>
+            <button id="check-4g-route" class="secondary" type="button">检测公网连接</button>
             <button id="check-proxy-route" class="secondary" type="button">检测代理</button>
           </div>
           <div id="network-checks" class="list empty compact-list">尚未检测</div>
@@ -278,6 +300,33 @@
           <pre id="at-output">等待命令</pre>
         </div>
       </section>
+      <section id="calls" class="view">
+        <div class="view-intro"><div><span class="section-kicker">PHONE</span><h2>电话</h2><p>通过 SIM 拨打电话，使用数字键盘操作语音菜单。</p></div></div>
+        <div class="settings-section"><p id="phone-status" role="status">尚未读取通话状态</p><div class="control-panel"><input id="phone-number" type="tel" placeholder="电话号码" aria-label="电话号码"><button id="phone-dial">拨打</button><button id="phone-answer" class="secondary">接听</button><button id="phone-hangup" class="danger">挂断</button></div><div id="phone-keypad" class="phone-keypad"></div><p id="phone-feedback" role="status"></p></div>
+        <div class="settings-section audio-settings">
+          <div class="section-heading"><div><h2>通话音频</h2><p>选择电脑与模块的音频设备，建议佩戴耳机。</p></div><button id="audio-discover" class="secondary" type="button">查找音频设备</button></div>
+          <div class="audio-auto-row">
+            <label class="audio-auto-setting" for="phone-use-audio">
+              <span class="audio-auto-copy"><span class="audio-auto-title">自动通话音频</span><span id="audio-auto-description" class="audio-auto-description">拨号时自动连接，挂断后关闭麦克风并保留模块待机</span></span>
+              <input id="phone-use-audio" class="audio-auto-switch" type="checkbox" role="switch" aria-label="自动通话音频" aria-describedby="audio-auto-description" checked>
+            </label>
+            <button id="audio-release" class="secondary audio-release-action" type="button" disabled>停止待机</button>
+          </div>
+          <p id="audio-module-status" role="status">正在检查本机实验音频支持…</p>
+          <div class="audio-device-groups">
+            <div class="audio-device-group"><div class="audio-group-heading"><strong>电脑设备</strong><span>你说话和收听的设备</span></div>
+              <div class="phone-audio-fields"><label>麦克风<select id="audio-mic" aria-label="电脑麦克风"><option value="">请先查找设备</option></select></label><label>扬声器<select id="audio-speaker" aria-label="电脑扬声器"><option value="">请先查找设备</option></select></label></div>
+            </div>
+            <div class="audio-device-group"><div class="audio-group-heading"><strong>模块设备</strong><span>需要模块提供 USB 声卡</span></div>
+              <div class="phone-audio-fields"><label>音频输入<select id="audio-modem-in" aria-label="模块音频输入"><option value="">请先查找设备</option></select></label><label>音频输出<select id="audio-modem-out" aria-label="模块音频输出"><option value="">请先查找设备</option></select></label></div>
+            </div>
+          </div>
+          <div class="audio-toolbar"><div class="control-panel"><button id="audio-connect" type="button">连接音频</button><button id="audio-stop" class="secondary" type="button">断开音频</button><button id="audio-mute" class="secondary" type="button" aria-pressed="false">麦克风静音</button></div><label class="audio-volume">收听音量 <input id="audio-volume" type="range" min="0" max="1" step="0.05" value="0.7"></label></div>
+          <p id="audio-feedback" role="status">尚未连接音频。若列表中没有模块声卡，需要先验证固件的 USB 音频支持。</p>
+          <button type="button" class="secondary" data-history="call">通话记录</button>
+          <button type="button" class="secondary" data-enable-alerts>开启来电／短信提示音</button>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -297,5 +346,8 @@
   </div>
   <div id="notice" role="status" aria-live="polite"></div>
   <script src="/app.js"></script>
+  <script src="/phone.js"></script>
+  <script src="/history.js"></script>
+  <script src="/alerts.js"></script>
 </body>
 </html>
