@@ -99,9 +99,9 @@ git submodule update --init --recursive
 
 #### 实验模块音频（本机可选）
 
-仅针对已验证的 QDC507GLEFM21 / Linux 3.18.44，并要求 ADB 已开启且获授权。标准 `adb root` 可用时会自动尝试并重新校验；不绕过授权、不利用漏洞、不解锁或刷机。程序自动检查 `~/Library/Application Support/DJ4Hub/experimental-audio`，ADB 自动从该目录的 `platform-tools/adb` 或 PATH 寻找，无需每次设置环境变量。需要时仍可用 `DJ4GHUB_ADB_PATH`、`DJ4GHUB_MODULE_VOICE_DIR` 覆盖路径。
+仅针对已验证的 QDC507GLEFM21 / Linux 3.18.44。新客户端支持旧式 QADBKEY 首次授权：先备份配置、只开启 ADB、必要时重启并核对同一设备；授权保留，不自动撤销。标准 `adb root` 可用时会自动尝试并重新校验；未知授权协议拒绝继续，不刷机。程序自动检查 `~/Library/Application Support/DJ4Hub/experimental-audio`，ADB 自动从该目录的 `platform-tools/adb` 或 PATH 寻找。需要时仍可用 `DJ4GHUB_ADB_PATH`、`DJ4GHUB_MODULE_VOICE_DIR` 覆盖路径。详见 [新设备初始化方案与实测](docs/QDC507_INITIALIZATION.md)。
 
-首次使用先从可信来源准备运行文件，执行 `dj4ghub audio-install /本机/运行文件目录`，再执行 `dj4ghub audio-check`。导入前验证固定哈希，不覆盖已有无效目录、不接触硬件；ADB 请单独安装官方 Android Platform Tools。所需文件、来源和哈希见 [音频研究记录](docs/QDC507_AUDIO_RESEARCH.md)。项目不分发、自动下载第三方驱动，也不会自动开启 ADB。常规便携包已包含音频控制代码，但新机器仍需准备这些可选依赖。
+首次使用先从可信来源准备运行文件，执行 `dj4ghub audio-install /本机/运行文件目录`，再执行 `dj4ghub audio-check`。导入前验证固定哈希，不覆盖已有无效目录、不接触硬件；ADB 请单独安装官方 Android Platform Tools。所需文件、来源和哈希见 [音频研究记录](docs/QDC507_AUDIO_RESEARCH.md)。项目不分发、自动下载第三方驱动。Web 首次授权说明包含 ADB 初始化与持久授权；常规便携包已包含音频控制代码，但新机器仍需准备这些可选依赖。
 
 Web 电话页面默认自动使用电脑通话音频：首次拨号提示允许临时 USB 重连，随后自动初始化、连接音频再拨号；以后进入电话页会提前初始化。挂断只关闭电脑麦克风和播放，模块保留待机供下一通复用。关闭页面或心跳中断约 45 秒后恢复 USB，也可手动“停止待机并恢复 USB”。不再设置一小时强制中断，但长时间稳定性尚未验证。来电时若未初始化，不强行重连 USB；可取消“自动使用电脑通话音频”仅操作拨号/接听。建议使用耳机。临时驱动保留至模块重启，不热卸载、不写入固件。
 

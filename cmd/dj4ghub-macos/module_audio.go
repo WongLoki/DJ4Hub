@@ -257,8 +257,61 @@ func (a *app) moduleAudioPrepare(w http.ResponseWriter, r *http.Request) {
 	}
 	s := &moduleAudioSession{token: hex.EncodeToString(token), adb: adb}
 	s.dir = "/tmp/dj4hub-audio-" + s.token
-	ctx, cancel := context.WithTimeout(r.Context(), 55*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 120*time.Second)
 	defer cancel()
+	if r.Header.Get("X-DJ4Hub-Initialize") == "1" {
+		location, locationErr := audioUSBLocation(ctx)
+		if locationErr != nil {
+			writeError(w, 409, locationErr.Error())
+			return
+		}
+		s.usb = location
+		identity, identityErr := audioIdentity(a.phoneCommand)
+		if identityErr != nil {
+			writeError(w, 409, "无法读取稳定设备身份，未初始化 ADB")
+			return
+		}
+		base, pathErr := os.UserConfigDir()
+		if pathErr != nil {
+			writeError(w, 500, "无法定位配置备份目录")
+			return
+		}
+		_, initErr := initializeAudioADB(ctx, a.phoneCommand, filepath.Join(base, "DJ4Hub", "device-backups"), identity)
+		if initErr != nil {
+			writeError(w, 409, initErr.Error())
+			return
+		}
+		if currentLocation, e := audioUSBLocation(ctx); e != nil || currentLocation != location {
+			writeError(w, 409, "USB 位置发生变化，请重新准备；未加载驱动")
+			return
+		}
+		if _, targetErr := s.target(ctx); targetErr != nil {
+			// Some legacy builds need the current challenge resubmitted after reboot.
+			if authErr := authorizeAudioADB(a.phoneCommand, identity); authErr != nil {
+				writeError(w, 409, authErr.Error())
+				return
+			}
+			for i := 0; i < 8; i++ {
+				if _, targetErr = s.target(ctx); targetErr == nil {
+					break
+				}
+				select {
+				case <-ctx.Done():
+					writeError(w, 409, "等待 ADB 超时")
+					return
+				case <-time.After(time.Second):
+				}
+			}
+			if targetErr != nil {
+				writeError(w, 409, "ADB 配置已启用，但连接不可用；请检查其他 ADB 服务占用或重新插拔，不会自动终止其他程序")
+				return
+			}
+		}
+		if current, e := audioIdentity(a.phoneCommand); e != nil || current != identity {
+			writeError(w, 409, "设备身份变化，未加载驱动")
+			return
+		}
+	}
 	err = s.prepare(ctx, files)
 	if err != nil {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -284,7 +337,7 @@ func (s *moduleAudioSession) prepare(ctx context.Context, files map[string][]byt
 		return fmt.Errorf("无法读取设备 USB 功能配置：%w", err)
 	}
 	if !supportedAudioFunctions(functions) {
-		return fmt.Errorf("当前 USB 功能配置不支持音频初始化：%q；仅支持原始 RMNET 或 ECM 组合", functions)
+		return fmt.Errorf("当前 USB 功能配置不支持音频初始化：%q；仅支持 RMNET 或 ECM 组合及其 USB 语音接口", functions)
 	}
 	if err := ensureAudioRoot(ctx, func() (string, error) { return s.shell(ctx, "id -u") }, func() error {
 		transport, err := s.target(ctx)
@@ -354,7 +407,8 @@ func (s *moduleAudioSession) prepare(ctx context.Context, files map[string][]byt
 }
 
 func supportedAudioFunctions(functions string) bool {
-	return functions == "diag,serial,rmnet,ffs" || functions == "diag,serial,ecm,ffs"
+	base := strings.TrimSuffix(functions, ",audio")
+	return base == "diag,serial,rmnet,ffs" || base == "diag,serial,ecm,ffs"
 }
 
 func (a *app) moduleAudioLease(w http.ResponseWriter, r *http.Request) {

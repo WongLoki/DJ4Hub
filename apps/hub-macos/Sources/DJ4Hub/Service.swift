@@ -27,8 +27,8 @@ struct HubValue {
     init(session: URLSession? = nil) {
         if let session { self.session = session; return }
         let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 70
-        config.timeoutIntervalForResource = 90
+        config.timeoutIntervalForRequest = 140
+        config.timeoutIntervalForResource = 150
         config.connectionProxyDictionary = [:]
         self.session = URLSession(configuration: config)
     }
@@ -37,6 +37,7 @@ struct HubValue {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("1", forHTTPHeaderField: "X-DJ4Hub-Audio")
+        if path == "api/calls/audio/prepare" { request.setValue("1", forHTTPHeaderField: "X-DJ4Hub-Initialize") }
         if let token { request.setValue(token, forHTTPHeaderField: "X-DJ4Hub-Audio-Token") }
         if let body { request.httpBody = try JSONSerialization.data(withJSONObject: body) }
         let (data, response) = try await session.data(for: request)

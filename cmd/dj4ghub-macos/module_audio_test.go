@@ -23,17 +23,21 @@ func TestAudioUSBModeWhitelistAndRestore(t *testing.T) {
 		t.Fatal("missing case end")
 	}
 	check := "original=$1\n" + moduleAudioScript[start:start+end+len("esac")]
-	for _, mode := range []string{"diag,serial,rmnet,ffs", "diag,serial,ecm,ffs", "diag,serial,ecm,ffs,audio", "diag,serial,rndis,ffs", "", "ecm", "diag,serial,rmnet,ffs\nmalicious"} {
-		want := mode == "diag,serial,rmnet,ffs" || mode == "diag,serial,ecm,ffs"
+	for _, mode := range []string{"diag,serial,rmnet,ffs", "diag,serial,ecm,ffs", "diag,serial,ecm,ffs,audio", "diag,serial,rmnet,ffs,audio", "diag,serial,ecm,ffs,audio,audio", "diag,serial,rndis,ffs", "", "ecm", "diag,serial,rmnet,ffs\nmalicious"} {
+		base := strings.TrimSuffix(mode, ",audio")
+		want := base == "diag,serial,rmnet,ffs" || base == "diag,serial,ecm,ffs"
 		if supportedAudioFunctions(mode) != want {
 			t.Fatalf("Go validation: %q", mode)
 		}
-		err := exec.Command("sh", "-c", check, "test", mode).Run()
+		out, err := exec.Command("sh", "-c", check+"\nprintf '%s' \"$audio_functions\"", "test", mode).Output()
 		if (err == nil) != want {
 			t.Fatalf("shell validation: %q: %v", mode, err)
 		}
+		if want && string(out) != base+",audio" {
+			t.Fatalf("duplicate or missing audio function: %q", out)
+		}
 	}
-	for _, fragment := range []string{`printf '%s' "$original,audio" > "$base/functions"`, `printf '%s' "$original" > "$base/functions"`, `test "$(cat "$base/functions")" = "$original"`} {
+	for _, fragment := range []string{`printf '%s' "$audio_functions" > "$base/functions"`, `printf '%s' "$original" > "$base/functions"`, `test "$(cat "$base/functions")" = "$original"`} {
 		if !strings.Contains(moduleAudioScript, fragment) {
 			t.Fatalf("lost original configuration handling: %s", fragment)
 		}
