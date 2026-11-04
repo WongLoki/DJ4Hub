@@ -26,6 +26,16 @@ enum HistoryPresentation {
         let number = value.filter { !$0.isWhitespace && $0 != "-" && $0 != "(" && $0 != ")" }
         return number.range(of: "^\\+?[0-9]{1,20}$", options: .regularExpression) == nil ? nil : number
     }
+    static func title(for kind: String) -> String {
+        switch kind {
+        case "sms": return "短信记录"
+        case "call": return "最近通话"
+        default: return "网络恢复记录"
+        }
+    }
+    static func stateLabel(_ value: String) -> String {
+        ["received": "已接收", "sent": "已提交模块", "failed_or_partial": "失败或部分发送", "failed": "拨号失败", "observed": "呼叫中", "connected": "通话中", "ended": "已接通", "unanswered": "未接通", "missed": "未接", "interrupted": "记录中断", "recovered": "已恢复", "unrecovered": "未恢复"][value] ?? value
+    }
 }
 
 struct CommunicationHistoryView: View {
@@ -44,7 +54,7 @@ struct CommunicationHistoryView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(kind == "sms" ? "短信记录" : "最近通话").font(.title2.bold())
+                    Text(HistoryPresentation.title(for: kind)).font(.title2.bold())
                     Text("\(total) 条记录 · 保存在这台 Mac 上").font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -75,7 +85,7 @@ struct CommunicationHistoryView: View {
                     Image(systemName: "clock").font(.system(size: 36, weight: .light)).foregroundStyle(.secondary)
                     Text(loading ? "正在读取记录…" : (error.isEmpty ? "暂无记录" : "请检查本地服务后重试")).font(.headline)
                     if error.isEmpty && !loading {
-                        Text(kind == "sms" ? "这张卡的短信记录会显示在这里。" : "这张卡的来电、去电和未接来电会显示在这里。")
+                        Text(kind == "sms" ? "这张卡的短信记录会显示在这里。" : kind == "call" ? "这张卡的来电、去电和未接来电会显示在这里。" : "看门狗自动复位模块的恢复事件会显示在这里。")
                             .font(.callout).foregroundStyle(.secondary)
                     }
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -101,7 +111,7 @@ struct CommunicationHistoryView: View {
                 }
             }
             Divider()
-            Text(kind == "sms" ? "来源未确认的模块旧短信保存在「未归属」。" : "时长为本机观测值，非运营商账单。选择号码只填入拨号框，不会立即呼叫。")
+            Text(kind == "sms" ? "来源未确认的模块旧短信保存在「未归属」。" : kind == "call" ? "时长为本机观测值，非运营商账单。选择号码只填入拨号框，不会立即呼叫。" : "记录看门狗自动复位模块（AT+CFUN=1,1）的恢复过程，时长为复位到链路恢复的观测值。")
                 .font(.caption).foregroundStyle(.secondary).padding(16)
         }.frame(width: 600, height: 620)
         .task { await load() }
@@ -117,21 +127,27 @@ struct CommunicationHistoryView: View {
     private func historyRow(_ row: HubValue) -> some View {
         let missed = row["state"].text == "missed"
         let incoming = row["direction"].text == "incoming"
+        let recovery = kind == "auto_recovery"
         let number = row["number"].text
         return HStack(alignment: .top, spacing: 14) {
-            Image(systemName: kind == "sms" ? "message" : (incoming ? "phone.arrow.down.left" : "phone.arrow.up.right"))
+            Image(systemName: recovery ? "arrow.triangle.2.circlepath" : kind == "sms" ? "message" : (incoming ? "phone.arrow.down.left" : "phone.arrow.up.right"))
                 .font(.system(size: 17)).foregroundStyle(missed ? Color.red : Color.secondary)
                 .frame(width: 30, height: 38)
             VStack(alignment: .leading, spacing: 6) {
-                Text(number.isEmpty || number == "—" ? "未知号码" : number)
+                Text(recovery ? "模块自动复位" : number.isEmpty || number == "—" ? "未知号码" : number)
                     .font(.system(size: 16, weight: .semibold)).foregroundStyle(missed ? Color.red : Color.primary).textSelection(.enabled)
-                Text(kind == "sms" ? label(row["state"].text) : "\(incoming ? "来电" : "去电") · \(label(row["state"].text))")
+                Text(kind == "call" ? "\(incoming ? "来电" : "去电") · \(label(row["state"].text))" : label(row["state"].text))
                     .font(.caption).foregroundStyle(missed ? Color.red : Color.secondary)
                 if kind == "call" && row["state"].text == "ended" {
                     Text(HistoryPresentation.duration(Int(row["duration_seconds"].text) ?? 0)).font(.caption).foregroundStyle(.secondary)
                 }
-                Text(HistoryPresentation.cardLabel(row["iccid"].text)).font(.caption2).foregroundStyle(.secondary)
-                if kind == "sms" { Text(row["content"].text).font(.callout).textSelection(.enabled) }
+                if recovery {
+                    Text("恢复用时 " + HistoryPresentation.duration(Int(row["duration_seconds"].text) ?? 0)).font(.caption).foregroundStyle(.secondary)
+                }
+                if !recovery {
+                    Text(HistoryPresentation.cardLabel(row["iccid"].text)).font(.caption2).foregroundStyle(.secondary)
+                }
+                if kind != "call" { Text(row["content"].text).font(.callout).textSelection(.enabled) }
             }
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 8) {
@@ -155,6 +171,6 @@ struct CommunicationHistoryView: View {
         } catch { self.error = error.localizedDescription }
     }
     private func label(_ value: String) -> String {
-        ["received": "已接收", "sent": "已提交模块", "failed_or_partial": "失败或部分发送", "failed": "拨号失败", "observed": "呼叫中", "connected": "通话中", "ended": "已接通", "unanswered": "未接通", "missed": "未接", "interrupted": "记录中断"][value] ?? value
+        HistoryPresentation.stateLabel(value)
     }
 }

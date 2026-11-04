@@ -12,6 +12,13 @@ final class HistoryTests: XCTestCase {
         XCTAssertThrowsError(try service.requestURL("https://example.com/api/history"))
         XCTAssertThrowsError(try service.requestURL("//example.com/api/history"))
     }
+    func testAutoRecoveryPresentation() {
+        XCTAssertEqual(HistoryPresentation.title(for: "sms"), "短信记录")
+        XCTAssertEqual(HistoryPresentation.title(for: "call"), "最近通话")
+        // 自动恢复留痕在 UI 上必须有自己的标题与状态文案。
+        XCTAssertEqual(HistoryPresentation.title(for: "auto_recovery"), "网络恢复记录")
+        XCTAssertEqual(HistoryPresentation.stateLabel("recovered"), "已恢复")
+    }
     func testPhonePresentation() {
         XCTAssertNotNil(HistoryPresentation.date("2026-09-13T10:20:30+12:00"))
         XCTAssertNotNil(HistoryPresentation.date("2026-09-13T10:20:30.123+12:00"))

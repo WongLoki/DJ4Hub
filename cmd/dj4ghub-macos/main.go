@@ -114,6 +114,10 @@ type app struct {
 
 	trafficMu        sync.Mutex
 	trafficBaselines map[string]networkByteCounters
+	trafficLastName  string
+
+	linkWatchdogMu sync.Mutex
+	linkWD         linkWatchdog
 }
 
 type usbInterfaceStatus struct {
@@ -136,19 +140,20 @@ type usbDeviceStatus struct {
 }
 
 type networkDiagnostic struct {
-	USBNetMode        string             `json:"usbnet_mode"`
-	USBCfg            string             `json:"usbcfg"`
-	PDPContexts       []pdpContext       `json:"pdp_contexts"`
-	ActiveContexts    []int              `json:"active_contexts"`
-	PDPAddresses      []string           `json:"pdp_addresses"`
-	MacInterfaces     []macNetInterface  `json:"mac_interfaces"`
-	DefaultRoute      macDefaultRoute    `json:"default_route"`
-	USBNetworkPresent bool               `json:"usb_network_present"`
-	USBNetworkReady   bool               `json:"usb_network_ready"`
-	NetworkService    *macNetworkService `json:"network_service,omitempty"`
-	USBDevice         *usbDeviceStatus   `json:"usb_device,omitempty"`
-	Raw               map[string]string  `json:"raw,omitempty"`
-	Errors            map[string]string  `json:"errors,omitempty"`
+	USBNetMode          string             `json:"usbnet_mode"`
+	USBCfg              string             `json:"usbcfg"`
+	PDPContexts         []pdpContext       `json:"pdp_contexts"`
+	ActiveContexts      []int              `json:"active_contexts"`
+	PDPAddresses        []string           `json:"pdp_addresses"`
+	MacInterfaces       []macNetInterface  `json:"mac_interfaces"`
+	DefaultRoute        macDefaultRoute    `json:"default_route"`
+	USBNetworkPresent   bool               `json:"usb_network_present"`
+	USBNetworkReady     bool               `json:"usb_network_ready"`
+	NetworkService      *macNetworkService `json:"network_service,omitempty"`
+	NetworkServiceState string             `json:"network_service_state"`
+	USBDevice           *usbDeviceStatus   `json:"usb_device,omitempty"`
+	Raw                 map[string]string  `json:"raw,omitempty"`
+	Errors              map[string]string  `json:"errors,omitempty"`
 }
 
 type pdpContext struct {
@@ -774,13 +779,37 @@ func (a *app) resetUSBATIfGone(err error) {
 	if err == nil || a.usbAT == nil {
 		return
 	}
-	text := strings.ToUpper(err.Error())
-	if !strings.Contains(text, "NO_DEVICE") &&
-		!strings.Contains(text, "NOT_FOUND") &&
-		!strings.Contains(text, "USB AT COMMAND TIMED OUT") {
+	if !isUSBTransportError(err) {
 		return
 	}
 	a.markUSBATDetached(err.Error())
+}
+
+// isUSBTransportError reports whether an AT error means the libusb handle is
+// dead and must be dropped before the next poll re-opens the device. After a
+// sleep/wake cycle the stale handle surfaces as TIMEOUT/PIPE/INTERRUPTED
+// instead of NO_DEVICE, so those must also trigger a reset.
+func isUSBTransportError(err error) bool {
+	if err == nil {
+		return false
+	}
+	text := strings.ToUpper(err.Error())
+	for _, marker := range []string{
+		"NO_DEVICE",
+		"NOT_FOUND",
+		"LIBUSB_ERROR_TIMEOUT",
+		"LIBUSB_ERROR_PIPE",
+		"LIBUSB_ERROR_INTERRUPTED",
+		"LIBUSB_ERROR_IO",
+		"LIBUSB_ERROR_OVERFLOW",
+		"LIBUSB_ERROR_BUSY",
+		"USB AT COMMAND TIMED OUT",
+	} {
+		if strings.Contains(text, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 // markUSBATDetached clears state belonging to a physically removed module.
@@ -829,6 +858,7 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("POST /api/network/check-4g", a.check4GRoute)
 	mux.HandleFunc("POST /api/network/check-proxy", a.checkProxyRoute)
 	mux.HandleFunc("POST /api/network/enable-service", a.enableNetworkService)
+	mux.HandleFunc("POST /api/network/recover", a.recoverNetwork)
 	mux.HandleFunc("POST /api/network/usbnet", a.setUSBNetMode)
 	mux.HandleFunc("POST /api/network/reboot-module", a.rebootModule)
 	mux.HandleFunc("GET /api/esim", a.esimOverview)
@@ -1526,10 +1556,12 @@ func (a *app) networkDiagnostic(w http.ResponseWriter, _ *http.Request) {
 	if diag.NetworkService == nil {
 		diag.USBNetworkReady = diag.USBNetworkPresent
 	}
+	diag.NetworkServiceState = networkServiceState(diag.NetworkService)
 
 	commands := map[string]string{
 		"usbnet":  `AT+QCFG="usbnet"`,
 		"usbcfg":  `AT+QCFG="usbcfg"`,
+		"cgatt":   `AT+CGATT?`,
 		"cgdcont": `AT+CGDCONT?`,
 		"cgact":   `AT+CGACT?`,
 		"cgpaddr": `AT+CGPADDR=1`,
@@ -1543,6 +1575,9 @@ func (a *app) networkDiagnostic(w http.ResponseWriter, _ *http.Request) {
 		raw[key] = resp
 	}
 
+	// 诊断轮询即看门狗采样点：链路卡死时无需等待唤醒事件也会触发复位。
+	a.noteNetworkProbe(linkProbeFrom(diag.NetworkServiceState, diag.NetworkService != nil, raw))
+
 	diag.USBNetMode = parseUSBNetMode(raw["usbnet"])
 	diag.USBCfg = parseUSBATPrefixed(raw["usbcfg"], "+QCFG:")
 	diag.PDPContexts = parsePDPContexts(raw["cgdcont"])
@@ -1552,6 +1587,13 @@ func (a *app) networkDiagnostic(w http.ResponseWriter, _ *http.Request) {
 		diag.Errors = nil
 	}
 	writeJSON(w, http.StatusOK, diag)
+}
+
+// recoverNetwork is invoked by the native app right after the Mac wakes from
+// sleep: the AT bridge is reopened on the next poll and stale baselines dropped.
+func (a *app) recoverNetwork(w http.ResponseWriter, _ *http.Request) {
+	a.recoverAfterWake()
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 func (a *app) enableNetworkService(w http.ResponseWriter, _ *http.Request) {
@@ -1787,14 +1829,14 @@ func (a *app) networkTraffic(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	a.trafficMu.Lock()
-	if a.trafficBaselines == nil {
-		a.trafficBaselines = make(map[string]networkByteCounters)
+	// A wake can renumber the module's interface (en11 -> en12). Carry the
+	// session baseline over so counters do not restart from zero.
+	if a.trafficLastName != "" && a.trafficLastName != name {
+		a.trafficBaselines = rebindTrafficBaseline(a.trafficBaselines, a.trafficLastName, name, current)
 	}
-	baseline, exists := a.trafficBaselines[name]
-	if !exists || current.RX < baseline.RX || current.TX < baseline.TX {
-		baseline = current
-		a.trafficBaselines[name] = baseline
-	}
+	a.trafficLastName = name
+	a.trafficBaselines = updateTrafficBaseline(a.trafficBaselines, name, current)
+	baseline := a.trafficBaselines[name]
 	a.trafficMu.Unlock()
 
 	snapshot.Available = true
@@ -1809,6 +1851,82 @@ func sessionTrafficFromCounters(current, baseline networkByteCounters) (rx, tx, 
 	rx = current.RX - baseline.RX
 	tx = current.TX - baseline.TX
 	return rx, tx, rx + tx
+}
+
+// updateTrafficBaseline folds the latest counter sample into the session
+// baselines. The baseline is re-anchored when the interface was not seen before
+// or when the counters went backwards (interface re-created after a wake).
+func updateTrafficBaseline(baselines map[string]networkByteCounters, name string, current networkByteCounters) map[string]networkByteCounters {
+	if baselines == nil {
+		baselines = make(map[string]networkByteCounters)
+	}
+	baseline, exists := baselines[name]
+	if !exists || current.RX < baseline.RX || current.TX < baseline.TX {
+		baseline = current
+		baselines[name] = baseline
+	}
+	return baselines
+}
+
+// rebindTrafficBaseline carries the session baseline across a macOS interface
+// renumber (en11 -> en12 after wake) so session counters do not jump when the
+// same module comes back under a new name. When two renames collapse into one
+// name the smaller (oldest) baseline is kept; counters that moved backwards
+// are re-anchored to the latest sample.
+func rebindTrafficBaseline(baselines map[string]networkByteCounters, oldName, newName string, current networkByteCounters) map[string]networkByteCounters {
+	if baselines == nil {
+		baselines = make(map[string]networkByteCounters)
+	}
+	baseline, exists := baselines[oldName]
+	if !exists {
+		return updateTrafficBaseline(baselines, newName, current)
+	}
+	delete(baselines, oldName)
+	if kept, seen := baselines[newName]; seen &&
+		(kept.RX < baseline.RX || kept.TX < baseline.TX) {
+		baseline = kept
+	}
+	if current.RX < baseline.RX || current.TX < baseline.TX {
+		baseline = current
+	}
+	baselines[newName] = baseline
+	return baselines
+}
+
+// recoverAfterWake drops stale per-connection state that survives a macOS
+// sleep: the libusb handle no longer answers after wake, and network counters
+// restart when the module re-enumerates under a new interface name. A later
+// status/SMS poll re-opens the AT bridge and re-anchors the baselines.
+func (a *app) recoverAfterWake() {
+	if a.usbAT != nil {
+		a.markUSBATDetached("system woke up from sleep")
+	}
+	a.trafficMu.Lock()
+	a.trafficBaselines = nil
+	a.trafficLastName = ""
+	a.trafficMu.Unlock()
+	a.noteWake()
+	log.Printf("post-wake recovery: released USB AT state and reset traffic baselines")
+}
+
+// enforceLinkWatchdog 由链路看门狗在「模块在位但网卡链路卡死」持续超过阈值后
+// 调用：休眠唤醒后模块固件内部 ECM 网桥不会自行重建，主机侧重配置/等 DHCP 均
+// 无效，只有 AT+CFUN=1,1 让模块复位才能恢复（与手动「重启模块」同一手段）。
+// 返回模块是否已接受复位。
+func (a *app) enforceLinkWatchdog() bool {
+	a.audioMu.Lock()
+	audioBusy := a.audioSession != nil && time.Since(a.audioSession.lastLease) < 50*time.Second
+	a.audioMu.Unlock()
+	if audioBusy {
+		log.Printf("link watchdog: 模块音频会话未结束，跳过本次复位")
+		return false
+	}
+	if _, err := a.runATCommand("AT+CFUN=1,1", 3*time.Second); err != nil {
+		log.Printf("link watchdog: 模块复位失败：%v", err)
+		return false
+	}
+	log.Printf("link watchdog: 已自动下发 AT+CFUN=1,1 复位模块以重建 ECM 网桥")
+	return true
 }
 
 func (a *app) check4GRoute(w http.ResponseWriter, r *http.Request) {
@@ -2118,6 +2236,15 @@ func hasLikelyUSBNetworkInterface(interfaces []macNetInterface) bool {
 func selectUSBTrafficInterface(interfaces []macNetInterface, route macDefaultRoute) string {
 	for _, item := range interfaces {
 		if item.Name == route.Interface && item.Kind == "ethernet" && item.Name != "en0" && item.Status == "active" {
+			return item.Name
+		}
+	}
+	// The default route may be a VPN tunnel (utun) after wake; prefer the
+	// module's own subnet before any other active ethernet so ordinary wired
+	// NICs are never mistaken for the module.
+	for _, item := range interfaces {
+		if item.Kind == "ethernet" && item.Name != "en0" && item.Status == "active" &&
+			strings.HasPrefix(item.IPv4, "192.168.225.") {
 			return item.Name
 		}
 	}

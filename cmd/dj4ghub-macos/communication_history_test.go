@@ -9,6 +9,26 @@ import (
 	"time"
 )
 
+// 自动恢复留痕是系统事件（无 SIM 归属），任何卡片筛选下都必须可见，
+// 否则 UI 默认「当前卡片」筛选会把恢复记录全部滤掉，留痕等于白做。
+func TestAutoRecoveryRecordsVisibleRegardlessOfCard(t *testing.T) {
+	now := time.Now()
+	rec := newAutoRecoveryRecord("recovered", "ECM 网桥卡死自动恢复", now.Add(-28*time.Second), now)
+	if rec.Kind != "auto_recovery" {
+		t.Fatalf("Kind = %q, want auto_recovery", rec.Kind)
+	}
+	if !historyRecordVisible(rec, "89860123456789012345", false) {
+		t.Fatal("auto recovery record hidden by card filter")
+	}
+	if !historyRecordVisible(rec, "89860123456789012345", true) {
+		t.Fatal("auto recovery record hidden in all-cards view")
+	}
+	sms := historyRecord{Kind: "sms", ICCID: "2222222222222222222"}
+	if historyRecordVisible(sms, "1111111111111111111", false) {
+		t.Fatal("sms record from another card must stay hidden")
+	}
+}
+
 func TestHistoryCardIsolationAndDurability(t *testing.T) {
 	h := &communicationHistory{path: filepath.Join(t.TempDir(), "records.json"), active: map[int]string{}}
 	a := &app{history: h}

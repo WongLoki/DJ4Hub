@@ -202,7 +202,8 @@ func (h *communicationHistory) persistDatabase() error {
 func (h *communicationHistory) queryDatabase(ctx context.Context, card string, all bool, kind string, rawOffset string) (map[string]any, error) {
 	query := h.db.WithContext(ctx).Model(&communicationRecord{})
 	if !all {
-		query = query.Where("iccid = ?", card)
+		// 自动恢复留痕是系统事件（无 SIM 归属），不受卡片筛选影响。
+		query = query.Where("iccid = ? OR kind = ?", card, "auto_recovery")
 	}
 	if kind != "" {
 		query = query.Where(&communicationRecord{Kind: kind})

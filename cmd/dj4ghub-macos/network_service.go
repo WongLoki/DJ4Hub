@@ -15,6 +15,47 @@ const (
 	networkServiceDHCPWait = 15 * time.Second
 )
 
+// Network link states used by classifyNetworkState.
+const (
+	networkStateReady      = "ready"
+	networkStateRecovering = "recovering"
+	networkStateError      = "error"
+)
+
+// classifyNetworkState separates "the link is still coming back after sleep or
+// a USB re-enumeration" from a real failure. Only a disabled service is a hard
+// error; missing interface, inactive link or a pending DHCP lease all recover
+// on their own once macOS finishes re-enumerating the module.
+func classifyNetworkState(service *macNetworkService) string {
+	switch {
+	case service == nil:
+		return networkStateError
+	case service.Disabled:
+		return networkStateError
+	case !service.InterfacePresent, service.InterfaceStatus != "active", service.IPv4 == "":
+		return networkStateRecovering
+	default:
+		return networkStateReady
+	}
+}
+
+// networkServiceState is the status reported to the UI: it distinguishes a
+// link that is still recovering from a hard failure so the frontend does not
+// report a wrong "network card error" right after wake.
+func networkServiceState(service *macNetworkService) string {
+	if service == nil {
+		return "missing"
+	}
+	switch classifyNetworkState(service) {
+	case networkStateReady:
+		return "ready"
+	case networkStateRecovering:
+		return "recovering"
+	default:
+		return "error"
+	}
+}
+
 type macNetworkService struct {
 	Name             string `json:"name"`
 	HardwarePort     string `json:"hardware_port"`
