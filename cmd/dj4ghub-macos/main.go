@@ -447,6 +447,23 @@ func newDemoApp() *app {
 	}
 }
 
+// supportedUSBIdentities lists the module USB identities accepted by this app:
+// 2ca3:4006 is the DJI-branded QDC507 mode, 2c7c:0125 is the Quectel EG25
+// identity used by modules enumerating as "Baiwang".
+var supportedUSBIdentities = [][2]int{
+	{0x2ca3, 0x4006},
+	{0x2c7c, 0x0125},
+}
+
+func supportedUSBIdentity(vid, pid int) bool {
+	for _, id := range supportedUSBIdentities {
+		if vid == id[0] && pid == id[1] {
+			return true
+		}
+	}
+	return false
+}
+
 func discoverATPort() (string, error) {
 	var ports []string
 	for _, pattern := range []string{
@@ -501,7 +518,7 @@ func discoverDJIUSBDevice() *usbDeviceStatus {
 	for _, block := range strings.Split(string(out), "\n\n") {
 		vendorID, okVendor := intProperty(block, "idVendor")
 		productID, okProduct := intProperty(block, "idProduct")
-		if !okVendor || !okProduct || vendorID != 0x2ca3 {
+		if !okVendor || !okProduct || !supportedUSBIdentity(vendorID, productID) {
 			continue
 		}
 		if device == nil {
@@ -934,6 +951,7 @@ func (a *app) usbATStatus() (modem.DeviceStatus, error) {
 	cnumResp, _ := a.usbAT.Command("AT+CNUM", 3*time.Second)
 	qnwinfoResp, _ := a.usbAT.Command("AT+QNWINFO", 3*time.Second)
 	usbnetResp, _ := a.usbAT.Command(`AT+QCFG="usbnet"`, 3*time.Second)
+	cgattResp, _ := a.usbAT.Command("AT+CGATT?", 3*time.Second)
 
 	if cpinErr != nil {
 		return modem.DeviceStatus{}, cpinErr
@@ -941,6 +959,7 @@ func (a *app) usbATStatus() (modem.DeviceStatus, error) {
 
 	regStatus := firstNonZeroRegistration(ceregResp, cregResp)
 	mode, duplex, band, channel := parseUSBATQNWInfo(qnwinfoResp)
+	psAttached, _ := modem.ParseCGATT(cgattResp)
 	usbnetMode := -1
 	if parsedMode, err := strconv.Atoi(parseUSBNetMode(usbnetResp)); err == nil {
 		usbnetMode = parsedMode
@@ -955,6 +974,7 @@ func (a *app) usbATStatus() (modem.DeviceStatus, error) {
 		SignalDBM:     parseUSBATCSQDBM(csqResp),
 		RegStatus:     regStatus,
 		RegStatusText: registrationText(regStatus),
+		PSAttached:    psAttached,
 		NetworkMode:   mode,
 		NetworkDuplex: duplex,
 		RadioBand:     band,

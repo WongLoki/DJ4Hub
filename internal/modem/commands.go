@@ -79,6 +79,19 @@ func (m *Manager) QueryRegistration() (int, string, string, string, error) {
 	return regStatus, m.getRegStatusText(regStatus), lac, cellID, nil
 }
 
+// QueryPSAttached 查询 PS 域附着状态（AT+CGATT?）。
+func (m *Manager) QueryPSAttached() (bool, error) {
+	resp, err := m.ExecuteATSilent("AT+CGATT?", 2*time.Second)
+	if err != nil {
+		return false, err
+	}
+	attached, ok := parseCGATT(resp)
+	if !ok {
+		return false, fmt.Errorf("解析 CGATT 响应失败: %s", resp)
+	}
+	return attached, nil
+}
+
 func (m *Manager) QueryCSQ() (int, int, error) {
 	resp, err := m.ExecuteATSilent("AT+CSQ", 2*time.Second)
 	if err != nil {

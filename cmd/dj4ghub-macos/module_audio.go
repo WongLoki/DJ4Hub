@@ -326,7 +326,7 @@ func (a *app) moduleAudioPrepare(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *moduleAudioSession) prepare(ctx context.Context, files map[string][]byte) error {
-	preflight := `test "$(uname -r)" = 3.18.44 && test "$(cat /sys/class/android_usb/android0/idVendor)" = 2ca3 && test "$(cat /sys/class/android_usb/android0/idProduct)" = 4006 && cat /proc/sys/kernel/random/boot_id`
+	preflight := `test "$(uname -r)" = 3.18.44 && test "$(cat /sys/class/android_usb/android0/idVendor):$(cat /sys/class/android_usb/android0/idProduct)" = "2ca3:4006" -o "$(cat /sys/class/android_usb/android0/idVendor):$(cat /sys/class/android_usb/android0/idProduct)" = "2c7c:0125" && cat /proc/sys/kernel/random/boot_id`
 	boot, err := s.shell(ctx, preflight)
 	if err != nil || !moduleAudioBootPattern.MatchString(boot) {
 		return errors.New("设备身份、内核、USB 配置或 ADB 权限不符合已验证条件")

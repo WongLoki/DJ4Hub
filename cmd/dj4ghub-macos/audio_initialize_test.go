@@ -28,9 +28,26 @@ func TestAudioUSBLocation(t *testing.T) {
 	if err != nil || got != "17825792X" {
 		t.Fatal(got, err)
 	}
+	quectel := "+-o Baiwang\n  | \"idVendor\" = 11388\n  | \"idProduct\" = 293\n  | \"locationID\" = 17825792\n"
+	if got, err := parseAudioUSBLocation(quectel); err != nil || got != "17825792X" {
+		t.Fatal("quectel identity rejected", got, err)
+	}
 	for _, raw := range []string{"", device + device, strings.Replace(device, "17825792", "0", 1)} {
 		if _, e := parseAudioUSBLocation(raw); e == nil {
 			t.Fatal("unsafe location accepted")
+		}
+	}
+}
+
+func TestSupportedUSBIdentity(t *testing.T) {
+	for _, id := range [][2]int{{0x2ca3, 0x4006}, {0x2c7c, 0x0125}} {
+		if !supportedUSBIdentity(id[0], id[1]) {
+			t.Fatalf("rejected supported identity %04x:%04x", id[0], id[1])
+		}
+	}
+	for _, id := range [][2]int{{0x2c7c, 0x4006}, {0x2ca3, 0x0125}, {0, 0}} {
+		if supportedUSBIdentity(id[0], id[1]) {
+			t.Fatalf("accepted mismatched identity %04x:%04x", id[0], id[1])
 		}
 	}
 }
@@ -41,7 +58,15 @@ func TestParseAudioUSB(t *testing.T) {
 	if err != nil || c[7] != "0" {
 		t.Fatal(c, err)
 	}
-	for _, s := range []string{strings.Replace(raw, "0x2CA3", "0x2c7c", 1), strings.Replace(raw, "1,1,1,1,1", "1,1,0,1,1", 1), strings.Replace(raw, "0,0\r", "0,0,1\r", 1)} {
+	quectel := strings.Replace(raw, "0x2CA3,0x4006", "0x2C7C,0x0125", 1)
+	if c, err := parseAudioUSB(quectel); err != nil || c[7] != "0" {
+		t.Fatal("quectel identity rejected", c, err)
+	}
+	for _, s := range []string{
+		strings.Replace(raw, "0x2CA3,0x4006", "0x2c7c,0x4006", 1),
+		strings.Replace(raw, "1,1,1,1,1", "1,1,0,1,1", 1),
+		strings.Replace(raw, "0,0\r", "0,0,1\r", 1),
+	} {
 		if _, e := parseAudioUSB(s); e == nil {
 			t.Fatal("accepted unsafe USB config")
 		}
