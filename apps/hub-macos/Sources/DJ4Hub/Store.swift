@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import SwiftUI
 
 enum HubPage: String, CaseIterable, Identifiable {
@@ -32,11 +33,26 @@ enum HubPage: String, CaseIterable, Identifiable {
     private var standbyTask: Task<Void, Never>?
     private var standbyAttempted = false
     private var shuttingDown = false
+    private var wakeObserver: NSObjectProtocol?
     @Published var backgroundAudio = UserDefaults.standard.object(forKey: "backgroundAudio") as? Bool ?? true {
         didSet {
             UserDefaults.standard.set(backgroundAudio, forKey: "backgroundAudio")
             if backgroundAudio { standbyAttempted = false; scheduleStandby() }
             else { stopBackgroundPreparation(); Task { await voice.release() } }
+        }
+    }
+    // After wake from sleep the USB AT handle and network counters are stale;
+    // tell the backend to recover before the next poll, then refresh the view.
+    private func registerWakeRecovery() {
+        guard wakeObserver == nil else { return }
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, !self.shuttingDown, self.ready else { return }
+                _ = try? await self.service.request("api/network/recover", method: "POST")
+                await self.refresh()
+            }
         }
     }
     func stopBackgroundPreparation(shutdown: Bool = false) { shuttingDown = shuttingDown || shutdown; standbyTask?.cancel(); standbyTask = nil }
@@ -66,6 +82,7 @@ enum HubPage: String, CaseIterable, Identifiable {
     func start() async {
         notifications.configure()
         await notifications.authorize()
+        registerWakeRecovery()
         await service.start(); ready = service.connected
         if ready { await refresh(); voice.refreshDevices() }
         else { notifications.report(service.connectionText, success: false, automatic: true) }

@@ -97,6 +97,11 @@ func (a *ATBackend) GetServingSystem(ctx context.Context) (*ServingSystem, error
 		ss.Operator = operator
 	}
 
+	// AT+CGATT? → PS 域附着状态
+	if attached, err := a.modem.QueryPSAttached(); err == nil {
+		ss.PSAttached = attached
+	}
+
 	// AT+QNWINFO → 网络模式 / 双工方式 / 频段 / 信道
 	if mode, duplex, band, channel, err := a.modem.QueryNetworkRadio(); err == nil {
 		ss.NetworkMode = mode

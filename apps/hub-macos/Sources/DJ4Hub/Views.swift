@@ -279,9 +279,17 @@ struct NetworkPage: View {
     @ObservedObject var store: HubStore
     @State private var apn = ""
     @State private var pdn = "IP"
+    @State private var showingRecovery = false
+    // 恢复中（休眠唤醒后 DHCP 未续/链路协商）与真正的错误要区分开，避免误报网卡状态错误。
+    var networkStateText: String {
+        if store.network["usb_network_ready"].bool { return "USB 网卡已就绪" }
+        if store.network["network_service_state"].text == "recovering" { return "USB 网卡恢复中（等待 DHCP / 链路）" }
+        return "USB 网卡未就绪"
+    }
     var body: some View {
         Panel(title: "网络诊断") {
-            HStack { Label(store.network["usb_network_ready"].bool ? "USB 网卡已就绪" : "USB 网卡未就绪", systemImage: "network"); Spacer(); Button("启用并获取 IP") { confirm("启用网络服务", "会请求 macOS 管理员授权并重新申请 DHCP。") { store.action("api/network/enable-service") } } }
+            HStack { Label(networkStateText, systemImage: "network"); Spacer(); Button("恢复记录") { showingRecovery = true }; Button("启用并获取 IP") { confirm("启用网络服务", "会请求 macOS 管理员授权并重新申请 DHCP。") { store.action("api/network/enable-service") } } }
+                .sheet(isPresented: $showingRecovery) { CommunicationHistoryView(store: store, kind: "auto_recovery") }
             VStack(spacing: 0) {
                 DetailRow(title: "网络服务", value: store.network["network_service"]["name"].text)
                 DetailRow(title: "默认出口", value: store.network["default_route"]["interface"].text + " · " + store.network["default_route"]["gateway"].text)

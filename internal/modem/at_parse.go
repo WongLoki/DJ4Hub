@@ -288,6 +288,24 @@ func parseAPN(resp string) string {
 	return ""
 }
 
+// parseCGATT 解析 AT+CGATT? 响应中的 PS 附着状态：+CGATT: 1 附着、0 未附着。
+// 返回 (附着, 是否解析成功)。
+func parseCGATT(resp string) (bool, bool) {
+	line, ok := findLineWithPrefix(resp, "+CGATT:")
+	if !ok {
+		return false, false
+	}
+	s := strings.TrimSpace(strings.TrimPrefix(line, "+CGATT:"))
+	v := 0
+	if _, err := fmt.Sscanf(s, "%d", &v); err != nil {
+		return false, false
+	}
+	return v == 1, true
+}
+
+// ParseCGATT 解析 AT+CGATT? 响应中的 PS 附着状态（导出供 USB AT 状态路径使用）。
+func ParseCGATT(resp string) (bool, bool) { return parseCGATT(resp) }
+
 func parseQIMS(resp string) (int, bool) {
 	line, ok := findLineWithPrefix(resp, "+QIMS:")
 	if !ok {

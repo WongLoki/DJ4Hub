@@ -30,7 +30,7 @@ func parseAudioUSBLocation(raw string) (string, error) {
 	for _, block := range regexp.MustCompile(`(?m)^\+-o `).Split(raw, -1) {
 		vid, v := intProperty(block, "idVendor")
 		pid, p := intProperty(block, "idProduct")
-		if !v || !p || vid != 0x2ca3 || pid != 0x4006 {
+		if !v || !p || !supportedUSBIdentity(vid, pid) {
 			continue
 		}
 		location, ok := intProperty(block, "locationID")
@@ -113,7 +113,7 @@ func parseAudioUSB(raw string) ([]string, error) {
 	}
 	vid, _ := strconv.ParseUint(m[1][2:], 16, 16)
 	pid, _ := strconv.ParseUint(m[2][2:], 16, 16)
-	if vid != 0x2ca3 || pid != 0x4006 || m[5] != "1" {
+	if !supportedUSBIdentity(int(vid), int(pid)) || m[5] != "1" {
 		return nil, errors.New("USB 身份或 AT 接口不符合初始化条件")
 	}
 	return m[1:], nil

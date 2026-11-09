@@ -95,6 +95,7 @@ type Manager struct {
 	// 网络信息
 	regStatus     int    // 网络注册状态 (0-5)
 	regStatusText string // 注册状态文本
+	psAttached    bool   // PS 域附着状态 (AT+CGATT?)
 	lac           string // 位置区代码
 	cellID        string // 小区 ID
 	apn           string // 接入点
@@ -896,6 +897,7 @@ func (m *Manager) collectDeviceInfo() {
 	var regStatusText, lac, cellID string
 	var signalDBM, signalRSRQ, signalRSRP int = -999, 0, 0
 	var usbnetMode int = -1
+	var psAttached bool
 
 	if v, err := m.QueryIMEI(); err == nil {
 		imei = v
@@ -946,6 +948,9 @@ func (m *Manager) collectDeviceInfo() {
 	if v, err := m.QueryUSBNetMode(); err == nil {
 		usbnetMode = v
 	}
+	if v, err := m.QueryPSAttached(); err == nil {
+		psAttached = v
+	}
 
 	// 2. 有锁阶段：统一更新状态
 	m.infoMu.Lock()
@@ -981,6 +986,7 @@ func (m *Manager) collectDeviceInfo() {
 	}
 	m.regStatus = regStatus
 	m.regStatusText = regStatusText
+	m.psAttached = psAttached
 	m.lac = lac
 	m.cellID = cellID
 	m.apn = apn
@@ -1169,6 +1175,7 @@ func (m *Manager) GetFullStatus() DeviceStatus {
 		SignalRSRQ:    m.signalRSRQ,
 		RegStatus:     m.regStatus,
 		RegStatusText: m.regStatusText,
+		PSAttached:    m.psAttached,
 		LAC:           m.lac,
 		CellID:        m.cellID,
 		APN:           m.apn,
@@ -1185,6 +1192,7 @@ func (m *Manager) RefreshStatus(onAlert func(msg string), onRecover func(msg str
 	// 1. 在锁外执行耗时的 AT 命令
 	var operator, networkMode, networkDuplex string
 	var signalDBM, signalRSRP, signalRSRQ int = -999, 0, 0
+	psAttached, psErr := m.QueryPSAttached()
 
 	// 检查 SIM 卡是否存活
 	simInserted, simErr := m.QuerySIMInserted()
@@ -1219,6 +1227,9 @@ func (m *Manager) RefreshStatus(onAlert func(msg string), onRecover func(msg str
 	}
 	if signalRSRQ != 0 {
 		m.signalRSRQ = signalRSRQ
+	}
+	if psErr == nil {
+		m.psAttached = psAttached
 	}
 
 	// 处理 SIM 卡告警逻辑 (连续 3 次探测失败)

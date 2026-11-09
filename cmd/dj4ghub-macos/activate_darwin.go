@@ -20,7 +20,7 @@ func activateDJINetwork(out io.Writer) error {
 	}
 	usbDevice := discoverDJIUSBDevice()
 	if usbDevice == nil {
-		return errors.New("未检测到受支持的 DJI 4G 模块（USB 2ca3:4006）")
+		return errors.New("未检测到受支持的 DJI 4G 模块（USB 2ca3:4006 / 2c7c:0125）")
 	}
 	fmt.Fprintf(out, "已检测到模块：%s %s（%s:%s）\n",
 		usbDevice.Vendor, usbDevice.Product, usbDevice.VendorID, usbDevice.ProductID)
@@ -102,14 +102,35 @@ func currentDJIProductName() string {
 
 func currentDJINetworkInterface() (string, string) {
 	device := discoverDJIUSBDevice()
-	if device == nil || !hasECMUSBInterfaces(device.Interfaces) {
+	if device == nil {
 		return "", ""
 	}
-	for _, item := range discoverMacNetworkInterfaces() {
+	return matchModuleNetworkInterface(device, discoverMacNetworkServices(), discoverMacNetworkInterfaces())
+}
+
+// matchModuleNetworkInterface picks the live network interface belonging to
+// the module. It must survive a wake/re-enumeration where the USB descriptor
+// is briefly vendor-only or the interface is renumbered (en11 -> en12): an
+// interface also counts when its MAC network service belongs to the module.
+func matchModuleNetworkInterface(device *usbDeviceStatus, services []macNetworkService, interfaces []macNetInterface) (string, string) {
+	if device == nil {
+		return "", ""
+	}
+	ecm := hasECMUSBInterfaces(device.Interfaces)
+	moduleDevices := make(map[string]bool)
+	for _, service := range services {
+		if service.Device != "" && (isDJINetworkService(service) || networkIdentityMatchesProduct(service, device.Product)) {
+			moduleDevices[service.Device] = true
+		}
+	}
+	for _, item := range interfaces {
 		if item.Kind != "ethernet" || item.Status != "active" || item.IPv4 == "" {
 			continue
 		}
-		if strings.HasPrefix(item.IPv4, "192.168.225.") {
+		if ecm && strings.HasPrefix(item.IPv4, "192.168.225.") {
+			return item.Name, item.IPv4
+		}
+		if moduleDevices[item.Name] {
 			return item.Name, item.IPv4
 		}
 	}

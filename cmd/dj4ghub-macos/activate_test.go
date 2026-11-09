@@ -68,6 +68,42 @@ func TestHasECMUSBInterfaces(t *testing.T) {
 	}
 }
 
+func TestMatchModuleNetworkInterfaceAfterWake(t *testing.T) {
+	services := []macNetworkService{
+		{Name: "EG25G-QDC507", HardwarePort: "EG25G-QDC507", Device: "en12"},
+	}
+	interfaces := []macNetInterface{
+		{Name: "en12", Kind: "ethernet", Status: "active", IPv4: "192.168.225.28"},
+	}
+
+	// After wake the USB descriptor can be briefly vendor-only (no CDC ECM
+	// interfaces) while the network service already points at the live NIC.
+	vendorOnly := &usbDeviceStatus{Product: "EG25G-QDC507", Interfaces: []usbInterfaceStatus{{Class: 255}}}
+	name, address := matchModuleNetworkInterface(vendorOnly, services, interfaces)
+	if name != "en12" || address != "192.168.225.28" {
+		t.Fatalf("vendor-only enumeration: got %q/%q, want en12/192.168.225.28", name, address)
+	}
+
+	// The module must also be found when it uses a subnet other than the
+	// hardcoded 192.168.225.x.
+	otherSubnet := []macNetInterface{
+		{Name: "en12", Kind: "ethernet", Status: "active", IPv4: "10.64.0.2"},
+	}
+	name, address = matchModuleNetworkInterface(vendorOnly, services, otherSubnet)
+	if name != "en12" || address != "10.64.0.2" {
+		t.Fatalf("other subnet: got %q/%q, want en12/10.64.0.2", name, address)
+	}
+
+	// A foreign NIC must not be mistaken for the module.
+	ecmDevice := &usbDeviceStatus{Product: "EG25G-QDC507", Interfaces: []usbInterfaceStatus{{Class: 2}, {Class: 10}}}
+	name, _ = matchModuleNetworkInterface(ecmDevice, services, []macNetInterface{
+		{Name: "en3", Kind: "ethernet", Status: "active", IPv4: "192.168.1.29"},
+	})
+	if name != "" {
+		t.Fatalf("foreign ethernet should not match the module, got %q", name)
+	}
+}
+
 func TestCurrentDJINetworkServicePrefersPresentInterface(t *testing.T) {
 	services := []macNetworkService{
 		{Name: "EG25G-QDC507", HardwarePort: "EG25G-QDC507", Device: "en9"},

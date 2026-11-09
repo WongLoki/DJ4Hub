@@ -163,6 +163,12 @@ func parseHistoryICCID(raw string) string {
 	return value
 }
 
+// historyRecordVisible 判定记录是否属于当前卡片筛选范围。自动恢复留痕是
+// 系统事件（无 SIM 归属），任何筛选下都必须可见，否则会被卡片过滤全部滤掉。
+func historyRecordVisible(record historyRecord, card string, all bool) bool {
+	return all || record.ICCID == card || record.Kind == "auto_recovery"
+}
+
 func (a *app) appendHistory(record historyRecord) error {
 	h := a.historyStore()
 	if h == nil {
@@ -349,7 +355,7 @@ func (a *app) listHistory(w http.ResponseWriter, r *http.Request) {
 		if record.ICCID != "" {
 			cards[record.ICCID] = "SIM · " + record.ICCID[max(0, len(record.ICCID)-4):]
 		}
-		if (all || record.ICCID == card) && (r.URL.Query().Get("kind") == "" || record.Kind == r.URL.Query().Get("kind")) {
+		if historyRecordVisible(record, card, all) && (r.URL.Query().Get("kind") == "" || record.Kind == r.URL.Query().Get("kind")) {
 			rows = append(rows, record)
 		}
 	}
